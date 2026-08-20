@@ -3,10 +3,10 @@
 Drop real message samples here, then build a profile from them:
 
 ```bash
-npm run learn -- --corpus src/voice/corpus/dms.jsonl --id mike --out src/voice/profiles/mike.json
+npm run learn -- --corpus src/voice/corpus/dms.jsonl --id taylor --out src/voice/profiles/taylor.json
 ```
 
-Nothing else in the engine changes. Point `VOICE_PROFILE=mike` at the result and
+Nothing else in the engine changes. Point `VOICE_PROFILE=taylor` at the result and
 every reply is written in his words.
 
 ## Formats
@@ -29,7 +29,7 @@ the few-shot examples the model realizer uses:
 Download your information → JSON), then point at a `message_1.json`:
 
 ```bash
-npm run learn -- --ig-export path/to/message_1.json --me "His Display Name" --id mike --out src/voice/profiles/mike.json
+npm run learn -- --ig-export path/to/message_1.json --me "Taylor F." --id taylor --out src/voice/profiles/taylor.json
 ```
 
 ## How many samples

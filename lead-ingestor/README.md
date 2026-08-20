@@ -300,7 +300,7 @@ might just be one talkative lead. It tells you when it is not certain.
 ```bash
 node src/cli.js import-archive \
   --path ~/Downloads/instagram-yourhandle-2026-08-20 \
-  --me "His Display Name" \
+  --me "Taylor F." \
   --store data/leads.json \
   --corpus-out data/voice-corpus.jsonl
 ```
@@ -311,7 +311,7 @@ corpus for module 1.
 ```bash
 cd ../leasing-reply-engine
 npm run learn -- --corpus ../lead-ingestor/data/voice-corpus.jsonl \
-  --id his-voice --out src/voice/profiles/his-voice.json
+  --id taylor --out src/voice/profiles/taylor.json
 ```
 
 **What to send me:** `data/voice-corpus.jsonl` is the useful artifact — it is
@@ -381,7 +381,7 @@ be replicated mid-flush.
 import { createIngestor } from './lead-ingestor/src/index.js';
 import { createEngine } from './leasing-reply-engine/src/index.js';
 
-const replyEngine = createEngine({ voiceProfile: 'his-voice' });
+const replyEngine = createEngine({ voiceProfile: 'taylor' });
 
 const ingestor = createIngestor({
   market: { name: 'Dallas', areas: ['uptown', 'deep ellum', 'oak lawn'] },

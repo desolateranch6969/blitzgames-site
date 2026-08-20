@@ -95,13 +95,13 @@ npm run voice -- --sample      # a sample line for every speech act
 
 ```bash
 # paired lead/agent messages, one JSON object per line
-npm run learn -- --corpus src/voice/corpus/dms.jsonl --id mike --out src/voice/profiles/mike.json
+npm run learn -- --corpus src/voice/corpus/dms.jsonl --id taylor --out src/voice/profiles/taylor.json
 
 # or straight from an Instagram data export
-npm run learn -- --ig-export message_1.json --me "His Display Name" --id mike --out src/voice/profiles/mike.json
+npm run learn -- --ig-export message_1.json --me "Taylor F." --id taylor --out src/voice/profiles/taylor.json
 ```
 
-Then `VOICE_PROFILE=mike` and every reply is in his words. No code changes.
+Then `VOICE_PROFILE=taylor` and every reply is in his words. No code changes.
 
 `learn` measures what can be measured and says what it could not:
 
@@ -288,12 +288,13 @@ Everything is optional. `createEngine()` with no arguments works.
 import { createEngine } from './src/index.js';
 
 const engine = createEngine({
-  voiceProfile: 'standard-locator',  // or 'mike', or a profile object
+  voiceProfile: 'standard-locator',  // or 'taylor', or a profile object
   realizer: 'template',              // or 'llm'
   store: 'file',                     // or 'memory', or bring your own
   autoSend: true,                    // false = compose for human approval
   business: {
-    agentName: 'mike',
+    agentName: 'Taylor',
+    brand: 'Elite Apartment Locators',
     market: { name: 'Dallas', areas: [{ name: 'Uptown', aliases: ['uptown'] }] },
     screening: { incomeMultiple: 3 },
     hours: { quietStart: 21, quietEnd: 8, timezone: 'America/Chicago' },
