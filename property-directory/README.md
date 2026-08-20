@@ -7,7 +7,7 @@ them.
 other modules.
 
 ```
-npm test    # 63 tests, zero dependencies
+npm test    # 92 tests, zero dependencies
 ```
 
 ---
@@ -111,26 +111,98 @@ titles not recognized (kept as written, no rank assigned)
 
 ---
 
-## Turnover is the normal case
+## Turnover: the two-card model
 
-Staff churn in this industry is relentless. If a contact's property were a field
-on the contact, updating it would rewrite history, and "who did I work with at
-The Maple last spring" would return the wrong person forever.
+Site staff churn relentlessly. A leasing agent is at one property for eight
+months, then another. Any single contact list for a property rots at the speed
+of its fastest-rotting entry, and a directory nobody trusts is a directory
+nobody opens.
 
-So assignments are dated records:
+So every property carries **two cards**, because the contacts on it decay at
+completely different rates:
 
-```js
-roster.assign(kim.id, maple.id, { startedAt: '2025-01-01' });
-roster.assign(kim.id, cedar.id, { startedAt: '2025-09-01' });  // ends the first
+| | Local card | Master card |
+|---|---|---|
+| Who | Office line, property manager, assistant, leasing staff | Regional, and corporate behind them |
+| Churn | High — months | Low — years |
+| Scope | This property only | Shared across every sister property |
+| Display | **Primary.** This is who you call. | Secondary, labelled as company-level |
+| Goes stale after | 60 days fresh · 180 aging | 180 days fresh · 540 aging |
 
-roster.at(maple.id);                              // she is not there now
-roster.at(maple.id, { asOf: '2025-03-01' });      // but she was in March
+Two clocks, and that is the entire point: a site roster six months old is
+probably wrong, while a regional six months old is probably still right.
+
+### The master card is the regional, not corporate
+
+The instinct is to hang the durable card off the management company. That fails
+at scale — a company managing 120,000 units has a corporate office nobody calls
+about one property.
+
+The useful durable contact is the **regional**: survives site turnover, actually
+knows the asset, and covers few enough properties to be a real relationship.
+[ZRS caps each regional at six properties](https://www.zrsmanagement.com/services/)
+precisely because that ratio is what makes the role work.
+
+So the master card resolves to the **nearest ancestor holding contacts** and
+composes upward from there — regional first, corporate behind, ordered by
+proximity rather than authority. The VP outranks the regional and is less useful
+about one property; the card reflects that. Nothing is hardcoded to a level: if
+a property hangs directly off a company with no region between, the company is
+the nearest ancestor and the card is the company's.
+
+The master card also states how many sister properties share it — the
+maintain-once win, made visible.
+
+### The loop this creates
+
+The answer to churn is not "keep the local card fresh forever", which is
+impossible. It is **always retain a durable route back to a fresh one**:
+
+```
+The Maple  ·  local card not confirmed in 200 days
+            → ask Nia Patel (Regional, North Texas) who is on site now
 ```
 
-The same person can also outrank themselves at different properties — a leasing
-agent at one, the manager at another. The assignment's role wins.
+A property with no master card is the one that actually needs a human, and
+`needsVerification()` sorts those last so the recoverable ones clear first.
 
----
+### Verification is automatic
+
+Nobody is ever going to click "confirm this contact is still there", so nothing
+depends on it. Cards are kept fresh by traffic the system already sees:
+
+| Signal | Where it comes from | Effect |
+|---|---|---|
+| **Inbound message** from a known contact | The same party check module 2 already runs on every DM | Verified. She wrote to us, so she is there. |
+| **Delivered** outbound | Channel adapter | Verified, weakly — a dead address would have bounced |
+| **Bounce / hard fail** | Channel adapter | Flagged unreachable, *not* departed — a bounce is not proof |
+| **Present in a fresh CRM export** | Every import | Verified as of the export date |
+| **Absent from a complete export** | `--reconcile` | Marked departed, with history intact |
+
+The first one is free: `partyResolver()` records a verification whenever it
+matches with certainty, so identifying a property manager and refreshing her
+card are the same event. Pass `{ verify: false }` to make identification
+read-only.
+
+```js
+directory.observe({ kind: 'inbound_message', handle: '@dana.at.themaple' });
+directory.observe({ kind: 'bounced', email: 'dana@alderres.com', reason: 'mailbox not found' });
+```
+
+**Absence from a complete export is the strongest automatic turnover signal
+there is** — nobody announces that they left, they simply stop appearing in the
+file. It is opt-in (`--reconcile`) because the inference only holds if the export
+is complete for the properties it covers; run it on a partial export and it guts
+the directory. It only touches properties the file actually mentioned, and
+departures never erase history.
+
+### Dates come from the file, not the clock
+
+An export generated three months ago describes a three-month-old roster. Both
+`verifiedAt` and the assignment start date are taken from the export, so
+`--as-of 2026-05-14` on an old dump produces cards that correctly read as stale
+rather than falsely fresh. If the CRM has its own last-contacted column, that is
+trusted over everything.
 
 ## Importing the CRM
 
@@ -272,6 +344,7 @@ src/
   contacts/
     titles.js           the ladder, normalization, the office/manager view
     contacts.js         contacts and dated assignments
+    cards.js            the two-card model, freshness, the verification loop
   party/party.js        industry vs customer — the separation
   import/
     csv.js              a real CSV parser
@@ -279,7 +352,7 @@ src/
   sources/source.js     the crawler seam and its policy hook
   store/index.js        memory + file
   cli.js
-test/                   63 tests
+test/                   92 tests
 ```
 
 ---

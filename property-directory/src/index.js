@@ -18,6 +18,7 @@
 import { createTree, createNode, naturalKey } from './tree/tree.js';
 import { createRoster, createContact, frontDesk, byAuthority, chainAbove } from './contacts/contacts.js';
 import { normalizeTitle, ROLES } from './contacts/titles.js';
+import { buildCards, verificationNeeded, DEFAULT_FRESHNESS } from './contacts/cards.js';
 import { createPartyIndex } from './party/party.js';
 import { importRecords, renderReport, detectMapping } from './import/importer.js';
 import { acceptDiscovered } from './sources/source.js';
@@ -26,6 +27,7 @@ import { createMemoryState, createFileStore } from './store/index.js';
 export { createNode, createTree, naturalKey } from './tree/tree.js';
 export { createContact, createRoster } from './contacts/contacts.js';
 export { normalizeTitle, ROLES, frontDesk, byAuthority } from './contacts/titles.js';
+export { buildCards, verificationNeeded, freshnessOf, DEFAULT_FRESHNESS } from './contacts/cards.js';
 export { importRecords, renderReport, detectMapping } from './import/importer.js';
 export { parseCsv, toCsv } from './import/csv.js';
 export { acceptDiscovered } from './sources/source.js';
@@ -40,6 +42,36 @@ export function createDirectory(config = {}) {
   const roster = createRoster({ contacts: state.contacts, assignments: state.assignments });
   const party = createPartyIndex({ roster, tree }, { extraDomains: config.extraDomains });
 
+  const cardOpts = () => ({
+    thresholds: config.freshness ?? DEFAULT_FRESHNESS,
+    now: config.now?.() ?? Date.now(),
+    summarize,
+  });
+
+  /**
+   * Both cards for a property: the local site team, and the durable card
+   * inherited from the nearest ancestor that has contacts.
+   * @param {string} nodeId
+   */
+  function cards(nodeId) {
+    return buildCards(nodeId, { tree, roster }, cardOpts());
+  }
+
+  /**
+   * Properties whose local card can no longer be trusted, each with the durable
+   * contact to call to fix it. This is the churn work queue.
+   * @param {{limit?: number}} [opts]
+   */
+  function needsVerification({ limit = 100 } = {}) {
+    return tree
+      .ofKind('property')
+      .filter((n) => n.status !== 'merged')
+      .map((n) => verificationNeeded(cards(n.id)))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.recoverable) - Number(a.recoverable))
+      .slice(0, limit);
+  }
+
   /**
    * The default view of a property: name, where it sits, and the two contacts
    * that matter. Everything else is a count and a follow-up call away.
@@ -49,7 +81,9 @@ export function createDirectory(config = {}) {
     const node = tree.resolve(nodeId);
     if (!node) return null;
     const desk = roster.frontDeskAt(node.id);
+    const both = cards(node.id);
     return {
+      cards: both,
       id: node.id,
       name: node.name,
       kind: node.kind,
@@ -127,12 +161,62 @@ export function createDirectory(config = {}) {
   }
 
   /**
+   * Verification, driven by traffic rather than by anyone remembering to do it.
+   *
+   * Nobody is ever going to click "confirm this contact is still there", so the
+   * card is kept fresh by the things the system already sees:
+   *
+   *   inbound_message   Dana wrote to us from her known handle. She is there.
+   *                     The strongest signal available, and it costs nothing —
+   *                     it is the same event the party check already handles.
+   *   delivered         A message to her landed without bouncing. Weaker, but
+   *                     real: a dead address would have failed.
+   *   delivery_failed   Bounced, disconnected, or rejected. Evidence the card
+   *                     has decayed — flagged, not deleted, because a bounce is
+   *                     not proof somebody left.
+   *   seen_on_site      A crawl found them on the property's staff page.
+   *
+   * @param {{kind: string, handle?: string, email?: string, phone?: string,
+   *          at?: string, reason?: string}} signal
+   */
+  function observe(signal = {}) {
+    const found = party.identify(signal);
+    if (found.party !== 'industry' || found.confidence !== 'certain' || !found.contact) return null;
+
+    const at = signal.at ?? new Date().toISOString();
+    const id = found.contact.id;
+
+    if (signal.kind === 'delivery_failed' || signal.kind === 'bounced') {
+      roster.flagUnreachable(id, signal.reason ?? 'delivery failed', at);
+      return { contact: id, action: 'flagged_unreachable', node: found.node?.id ?? null };
+    }
+
+    roster.recordVerification(id, at);
+    return { contact: id, action: 'verified', via: signal.kind, node: found.node?.id ?? null };
+  }
+
+  /**
    * Hand this to the lead ingestor. It answers "is this message from the
    * industry" and returns a plain object, so neither module imports the other.
+   *
+   * By default a certain match also counts as a verification — the inbound
+   * message that proves who someone is also proves they are still there, and
+   * catching it here means the cards stay fresh with nobody doing anything.
+   *
+   * @param {{verify?: boolean}} [opts]
    */
-  function partyResolver() {
+  function partyResolver({ verify = true } = {}) {
     party.rebuild();
-    return party.resolver();
+    const identify = party.resolver();
+    if (!verify) return identify;
+
+    return (actor) => {
+      const result = identify(actor);
+      if (result.party === 'industry' && result.confidence === 'certain' && result.contact) {
+        roster.recordVerification(result.contact.id);
+      }
+      return result;
+    };
   }
 
   function stats() {
@@ -176,6 +260,9 @@ export function createDirectory(config = {}) {
     tree,
     roster,
     party,
+    cards,
+    needsVerification,
+    observe,
     property,
     contactsAt,
     escalationFrom,

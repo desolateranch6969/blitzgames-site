@@ -62,7 +62,8 @@ async function runImport() {
       dryRun: Boolean(args['dry-run']),
       mapping: mapOverrides(),
       defaultManagementCompany: args.company,
-      source: { source: 'crm-import', reference: file },
+      reconcile: Boolean(args.reconcile),
+      source: { source: 'crm-import', reference: file, at: parseAsOf(args['as-of']) },
     },
   );
 
@@ -158,6 +159,8 @@ ${bold('property directory')}
       --store <file.json>       where the directory lives
       --map <field>=<Column>    override a column mapping, repeatable
       --company "Name"          management company for rows that do not name one
+      --as-of <YYYY-MM-DD>      when the export was generated, if not today
+      --reconcile               treat absence as departure — only for a COMPLETE export
 
   ${bold('tree')}    --store <file.json>          the hierarchy
   ${bold('who')}     "property name" [--all]      the office and the manager
@@ -193,6 +196,17 @@ function mapOverrides() {
     .filter((parts) => parts.length >= 2)
     .map(([field, ...rest]) => [field.trim(), rest.join('=').trim()]);
   return Object.fromEntries(entries);
+}
+
+/** An export generated earlier than today should say so. */
+function parseAsOf(raw) {
+  if (!raw || raw === true) return undefined;
+  const parsed = Date.parse(raw);
+  if (Number.isNaN(parsed)) {
+    console.error(`--as-of "${raw}" is not a date I can read. Use YYYY-MM-DD.`);
+    process.exit(1);
+  }
+  return new Date(parsed).toISOString();
 }
 
 function format(contact) {

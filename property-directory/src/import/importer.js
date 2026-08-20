@@ -46,6 +46,9 @@ export const FIELD_SYNONYMS = {
   contactPhone: ['phone', 'phonenumber', 'telephone', 'contactphone', 'mobile', 'cell', 'office', 'officephone', 'directphone'],
   contactInstagram: ['instagram', 'ig', 'instagramhandle', 'social'],
   notes: ['notes', 'note', 'comments', 'description', 'remarks'],
+  // If the CRM already tracks when a contact was last confirmed, inherit it
+  // rather than starting every record from unverified.
+  contactVerifiedAt: ['lastcontacted', 'lastverified', 'lastcontact', 'lastupdated', 'verified', 'lasttouch', 'lastactivity'],
 };
 
 /** @param {string} header */
@@ -110,8 +113,21 @@ export function detectMapping(headers, overrides = {}) {
  * }} opts
  */
 export function importRecords(input, opts) {
-  const { tree, roster } = opts;
+  const { tree, roster } = opts ?? {};
   if (!tree || !roster) throw new Error('import needs a tree and a roster');
+
+  // Options passed in the input argument are silently ignored, and the two that
+  // matter most fail dangerously when ignored: `dryRun` writes anyway, and
+  // `reconcile` quietly departs nobody. Refuse rather than misbehave.
+  const misplaced = ['dryRun', 'reconcile', 'mapping', 'source', 'defaultManagementCompany'].filter(
+    (key) => input && key in input,
+  );
+  if (misplaced.length) {
+    throw new Error(
+      `${misplaced.join(', ')} belong in the second argument, not the first: ` +
+        `importCrm({ text }, { ${misplaced[0]}: … })`,
+    );
+  }
 
   const parsed = input.text ? parseCsv(input.text) : { headers: input.headers ?? [], rows: input.rows ?? [] };
   const { mapping, unmapped, missingRequired } = detectMapping(parsed.headers, opts.mapping);
@@ -119,8 +135,15 @@ export function importRecords(input, opts) {
   const source = {
     source: opts.source?.source ?? 'crm-import',
     reference: opts.source?.reference,
-    at: new Date().toISOString(),
+    // When the FILE was produced, not when we got round to loading it. A CRM
+    // dump generated three months ago must not mark its roster fresh today —
+    // that is precisely the stale data the freshness model exists to catch.
+    at: opts.source?.at ?? new Date().toISOString(),
   };
+
+  /** Contacts this file vouched for — the basis for reconciling departures. */
+  const seenContactIds = new Set();
+  const touchedNodeIds = new Set();
 
   const report = {
     rows: parsed.rows.length,
@@ -132,6 +155,7 @@ export function importRecords(input, opts) {
     contacts: { created: 0, matched: 0, assigned: 0 },
     skipped: [],
     unrecognizedTitles: new Map(),
+    departed: [],
     dryRun: Boolean(opts.dryRun),
   };
 
@@ -238,13 +262,20 @@ export function importRecords(input, opts) {
         ]);
         contact.sources.push(source);
         contact.updatedAt = source.at;
+        // Still in the export means still there as of the export date.
+        contact.verifiedAt = parseDate(get('contactVerifiedAt')) ?? source.at;
+        if (contact.status === 'unknown') contact.status = 'active';
       }
+      seenContactIds.add(contact.id);
     } else {
       contact = createContact({
         firstName: first || undefined,
         lastName: last || undefined,
         displayName,
         rawTitle: title || undefined,
+        // An import is itself evidence: the CRM held this person as of the
+        // export. Prefer the CRM's own last-contacted column when it has one.
+        verifiedAt: parseDate(get('contactVerifiedAt')) ?? source.at,
         channels: [
           { kind: 'email', value: email, primary: true },
           { kind: 'phone', value: phone },
@@ -254,6 +285,7 @@ export function importRecords(input, opts) {
         source,
       });
       if (!opts.dryRun) roster.addContact(contact);
+      seenContactIds.add(contact.id);
       report.contacts.created++;
     }
 
@@ -264,10 +296,33 @@ export function importRecords(input, opts) {
     }
 
     if (!opts.dryRun) {
-      roster.assign(contact.id, property.id, { source, keepOthers: true });
+      // Dated from the export, not from the moment of loading — an assignment
+      // learned from a year-old file began at least a year ago, and any
+      // as-of query against the interim would otherwise miss it.
+      roster.assign(contact.id, property.id, { source, startedAt: source.at, keepOthers: true });
     }
+    touchedNodeIds.add(property.id);
     report.contacts.assigned++;
   });
+
+  // ── reconcile departures ───────────────────────────────────────────────
+  //
+  // Someone who was on file at a property and is NOT in a fresh full export of
+  // that property has left. That is the strongest automatic turnover signal
+  // there is, and it costs nobody any effort.
+  //
+  // Guarded behind an explicit opt-in, because the inference only holds if the
+  // file is COMPLETE for the properties it touches. Run it on a partial export
+  // and it marks half the directory as departed.
+  if (opts.reconcile && !opts.dryRun) {
+    for (const nodeId of touchedNodeIds) {
+      for (const contact of roster.at(nodeId)) {
+        if (seenContactIds.has(contact.id)) continue;
+        roster.markDeparted(contact.id, source.at);
+        report.departed.push({ name: contact.displayName, role: contact.role, nodeId });
+      }
+    }
+  }
 
   return finish(report);
 }
@@ -314,6 +369,13 @@ function mergeChannels(existing = [], incoming = []) {
 /** A row with an email but no person's name is the office. */
 function officeNameFor(propertyName, email) {
   return email ? `${propertyName} leasing office` : propertyName;
+}
+
+/** Lenient date parsing — CRM exports write dates a dozen ways. */
+function parseDate(raw) {
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
 }
 
 function stripEmpty(object) {

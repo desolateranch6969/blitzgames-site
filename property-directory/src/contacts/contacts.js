@@ -42,6 +42,10 @@ export function createContact(init) {
     channels,
     sources: init.source ? [init.source] : [],
     status: 'active',
+    // When someone last CONFIRMED this person is still there — not when we
+    // learned about them. An imported record starts unverified on purpose: we
+    // have the data, nobody has checked it, and saying so is the honest state.
+    verifiedAt: init.verifiedAt ?? null,
     notes: init.notes,
     createdAt: now,
     updatedAt: now,
@@ -201,6 +205,34 @@ export function createRoster(state = {}) {
     return frontDesk(byAuthority(at(nodeId)));
   }
 
+  /**
+   * Someone confirmed this person is still there. The only thing that makes a
+   * card fresh.
+   */
+  function recordVerification(contactId, at = new Date().toISOString(), note) {
+    const contact = contacts.get(contactId);
+    if (!contact) return null;
+    contact.verifiedAt = at;
+    contact.status = 'active';
+    contact.updatedAt = at;
+    if (note) contact.notes = note;
+    return contact;
+  }
+
+  /**
+   * A message bounced, an email hard-failed, the number is disconnected. That is
+   * evidence the local card has decayed — but not proof this person left, so
+   * they are flagged rather than marked departed.
+   */
+  function flagUnreachable(contactId, reason = 'no response', at = new Date().toISOString()) {
+    const contact = contacts.get(contactId);
+    if (!contact) return null;
+    contact.status = 'unknown';
+    contact.updatedAt = at;
+    contact.notes = [contact.notes, `unreachable ${at.slice(0, 10)}: ${reason}`].filter(Boolean).join(' · ');
+    return contact;
+  }
+
   /** Mark someone as gone without deleting them. */
   function markDeparted(contactId, at = new Date().toISOString()) {
     const contact = contacts.get(contactId);
@@ -235,6 +267,8 @@ export function createRoster(state = {}) {
     current,
     at,
     frontDeskAt,
+    recordVerification,
+    flagUnreachable,
     markDeparted,
     unrecognizedTitles,
     allContacts: () => [...contacts.values()],
