@@ -1,0 +1,25 @@
+{
+  "name": "@leasing/property-directory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Properties, their org hierarchy, and their contacts. Module 3 of the leasing automation system.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./tree": "./src/tree/tree.js",
+    "./contacts": "./src/contacts/contacts.js",
+    "./import": "./src/import/importer.js",
+    "./party": "./src/party/party.js"
+  },
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "import": "node src/cli.js import",
+    "inspect": "node src/cli.js inspect",
+    "tree": "node src/cli.js tree",
+    "who": "node src/cli.js who",
+    "escalate": "node src/cli.js escalate"
+  },
+  "license": "UNLICENSED"
+}

@@ -166,6 +166,107 @@ describe('routing', () => {
   });
 });
 
+describe('industry contacts are separated from customers', () => {
+  // The directory's resolver contract, stubbed. No import from module 3 — the
+  // point of injecting it is that neither module depends on the other.
+  const known = {
+    'dana.at.themaple': {
+      party: 'industry',
+      confidence: 'certain',
+      matchedOn: 'instagram',
+      contact: { id: 'c_dana', displayName: 'Dana Price' },
+      node: { id: 'n_maple', name: 'The Maple' },
+      reason: 'Dana Price is on file as property manager at The Maple',
+    },
+  };
+  const identifyParty = (actor) =>
+    known[actor.handle] ?? { party: 'unknown', confidence: 'none', reason: 'not a known industry contact' };
+
+  test('a property manager is never triaged as a renter', async () => {
+    const handoffs = [];
+    const ingestor = createIngestor({ identifyParty, onHandoff: (p) => handoffs.push(p) });
+
+    // Wording that would absolutely qualify as a lead from anyone else.
+    const [result] = await ingestor.ingest([
+      event('hey! do you have any 2 bedrooms under 2k available for september?', { handle: 'dana.at.themaple' }),
+    ]);
+
+    assert.equal(result.triage.disposition, DISPOSITIONS.INDUSTRY_CONTACT);
+    assert.equal(handoffs.length, 0, 'never handed to the reply engine');
+    assert.match(result.triage.reasons[0], /property manager at The Maple/);
+  });
+
+  test('the property they work at is recorded on the lead', async () => {
+    const ingestor = createIngestor({ identifyParty });
+    const [result] = await ingestor.ingest([event('checking in on that referral', { handle: 'dana.at.themaple' })]);
+    assert.equal(result.lead.ext.party.node, 'n_maple');
+    assert.equal(result.lead.ext.party.contact, 'c_dana');
+  });
+
+  test('an industry message is announced on its own channel', async () => {
+    const ingestor = createIngestor({ identifyParty });
+    const seen = [];
+    ingestor.bus.on(EVENTS.INDUSTRY_MESSAGE, (p) => seen.push(p));
+    await ingestor.ingest([event('we have 3 units coming up', { handle: 'dana.at.themaple' })]);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].party.confidence, 'certain');
+  });
+
+  test('industry contacts are never enriched', async () => {
+    let enrichCalls = 0;
+    const ingestor = createIngestor({
+      identifyParty,
+      enrichInline: true,
+      enrichmentProviders: [{ name: 'counting', appliesTo: () => true, fetch: async () => { enrichCalls++; return []; } }],
+    });
+    await ingestor.ingest([event('hey', { handle: 'dana.at.themaple' })]);
+    assert.equal(enrichCalls, 0, 'there is no reason to build a profile of a property manager');
+  });
+
+  test('an unknown sender is unaffected and still becomes a lead', async () => {
+    const handoffs = [];
+    const ingestor = createIngestor({ identifyParty, onHandoff: (p) => handoffs.push(p) });
+    const [result] = await ingestor.ingest([
+      event('looking for a 2 bed in uptown under 2k, moving sept 1', { handle: 'jessicarenter' }),
+    ]);
+    assert.equal(result.triage.disposition, DISPOSITIONS.PROSPECTIVE_RENTER);
+    assert.equal(handoffs.length, 1);
+  });
+
+  test('a probable match goes to a person rather than being assumed', async () => {
+    const ingestor = createIngestor({
+      identifyParty: () => ({
+        party: 'industry',
+        confidence: 'probable',
+        matchedOn: 'domain',
+        reason: 'writes from alderres.com, a known management domain',
+      }),
+    });
+    const [result] = await ingestor.ingest([event('looking for a 1 bed', { handle: 'someone.new' })]);
+    assert.equal(result.triage.disposition, DISPOSITIONS.INDUSTRY_CONTACT);
+    assert.equal(result.triage.needsHuman, true, 'the company being known does not mean this person is staff');
+  });
+
+  test('a directory that throws does not stop the inbox', async () => {
+    const handoffs = [];
+    const ingestor = createIngestor({
+      identifyParty: () => { throw new Error('directory unavailable'); },
+      onHandoff: (p) => handoffs.push(p),
+    });
+    const [result] = await ingestor.ingest([event('looking for a 2 bed in uptown, 2k, sept 1')]);
+    assert.equal(result.triage.disposition, DISPOSITIONS.PROSPECTIVE_RENTER, 'falls back to treating them as a customer');
+    assert.equal(handoffs.length, 1);
+  });
+
+  test('one industry message makes the whole thread industry', async () => {
+    const ingestor = createIngestor({ identifyParty });
+    const thread = 'mixed:1';
+    await ingestor.ingest([event('do you have 2 bedrooms?', { handle: 'dana.at.themaple', threadId: thread })]);
+    const [second] = await ingestor.ingest([event('thanks!', { handle: 'dana.at.themaple', threadId: thread })]);
+    assert.equal(second.triage.disposition, DISPOSITIONS.INDUSTRY_CONTACT);
+  });
+});
+
 describe('enrichment', () => {
   const provider = (name, facts, opts = {}) => ({
     name,

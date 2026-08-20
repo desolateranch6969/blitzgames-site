@@ -46,6 +46,13 @@ export const DISPOSITIONS = /** @type {const} */ ({
   PERSONAL_OR_SOCIAL: 'personal_or_social',
   /** Not enough to classify. Held for a human glance. */
   UNCLEAR: 'unclear',
+  /**
+   * A known property contact — a leasing agent, a manager, a regional. Never a
+   * lead, never enriched, never counted in the funnel. Recognized by identity
+   * before triage ever reads the words, because an industry message often looks
+   * exactly like a renter message.
+   */
+  INDUSTRY_CONTACT: 'industry_contact',
 });
 
 /** What the system does with each disposition. The portal renders this. */
@@ -58,6 +65,7 @@ export const ROUTING = {
   [DISPOSITIONS.SPAM_OR_BOT]: { handOffToReplyEngine: false, enrich: false, notifyOperator: false },
   [DISPOSITIONS.PERSONAL_OR_SOCIAL]: { handOffToReplyEngine: false, enrich: false, notifyOperator: true },
   [DISPOSITIONS.UNCLEAR]: { handOffToReplyEngine: false, enrich: false, notifyOperator: true },
+  [DISPOSITIONS.INDUSTRY_CONTACT]: { handOffToReplyEngine: false, enrich: false, notifyOperator: false, stream: 'industry' },
 };
 
 /** Criteria a search needs before anyone can actually work it. */
@@ -227,6 +235,7 @@ export function createTriage(deps = {}) {
  * message was "ok thanks".
  */
 const PRECEDENCE = [
+  DISPOSITIONS.INDUSTRY_CONTACT,
   DISPOSITIONS.SPAM_OR_BOT,
   DISPOSITIONS.VENDOR_OR_RECRUITER,
   DISPOSITIONS.PROSPECTIVE_RENTER,

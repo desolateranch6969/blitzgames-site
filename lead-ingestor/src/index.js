@@ -45,6 +45,7 @@ export const EVENTS = /** @type {const} */ ({
   LEAD_TRIAGED: 'lead.triaged',
   LEAD_HANDED_OFF: 'lead.handed_off',
   LEAD_HELD: 'lead.held',
+  INDUSTRY_MESSAGE: 'industry.message',
   ENRICHED: 'person.enriched',
   SOURCE_HEALTH: 'source.health',
   ERROR: 'error',
@@ -88,6 +89,9 @@ export function createBus({ logger } = {}) {
  * @property {any} [logger]
  * @property {{name?: string, areas?: string[]}} [market]
  * @property {(text: string) => Record<string, any>} [extractSlots]  Module 1's extractor, optional.
+ * @property {(actor: object) => {party: string, confidence: string, reason: string, contact?: object, node?: object}} [identifyParty]
+ *   Module 3's party resolver, optional. Injected rather than imported so the
+ *   directory and the ingestor stay independent.
  * @property {(handoff: {lead: any, person: any, events: any[], sheet: any}) => any} [onHandoff]
  * @property {import('./enrichment/enricher.js').Provider[]} [enrichmentProviders]
  * @property {boolean} [enrichInline]  Await enrichment during ingest (tests); default false.
@@ -230,11 +234,18 @@ export function createIngestor(config = {}) {
     const lead = await upsertLead(person, event);
     const history = await store.listEvents({ threadId: lead.threadId });
 
-    // Triage the whole thread, not the newest line. People state their budget in
-    // message three and "ok cool" in message four; classifying only the latest
-    // would lose the lead.
+    // Identity before words. A leasing manager asking about a unit reads exactly
+    // like a renter asking about a unit, so the party check runs first and
+    // short-circuits triage entirely — an industry message never enters the
+    // renter funnel to be filtered out of later.
+    const party = identifyParty(event);
     const inboundTexts = history.map((e) => ({ text: e.text ?? '' }));
-    const decision = triage.classifyThread(inboundTexts);
+    const decision = party ? industryDecision(party) : triage.classifyThread(inboundTexts);
+
+    if (party) {
+      lead.ext.party = { ...party, contact: party.contact?.id ?? null, node: party.node?.id ?? null };
+      await bus.emit(EVENTS.INDUSTRY_MESSAGE, { lead, person, event, party });
+    }
     lead.triage = decision;
     lead.state = 'triaged';
     await store.saveLead(lead);
@@ -282,6 +293,57 @@ export function createIngestor(config = {}) {
     }
 
     return { lead, person, triage: decision, routed };
+  }
+
+  /**
+   * Ask the directory whether this sender is industry rather than a customer.
+   * Returns null when there is no directory wired up, or when the sender is not
+   * recognized — the common case.
+   * @param {import('./core/types.js').RawEvent} event
+   */
+  function identifyParty(event) {
+    if (!config.identifyParty) return null;
+    try {
+      const result = config.identifyParty({
+        platform: event.actor.platform,
+        platformId: event.actor.platformId,
+        handle: event.actor.handle,
+        email: extractEmail(event.text),
+        phone: extractPhone(event.text),
+      });
+      return result?.party === 'industry' ? result : null;
+    } catch (err) {
+      // A directory that is down must not stop the inbox. Treating an unknown
+      // sender as a customer is the safe default: worst case, a manager gets a
+      // polite qualifying question, which a human then corrects.
+      logger.warn?.('party lookup failed; treating sender as a customer', { error: String(err.message) });
+      return null;
+    }
+  }
+
+  /**
+   * A confirmed industry contact is routed, not classified. A probable one —
+   * matched only on an email domain — still goes to a person, because the
+   * company being recognized does not mean this individual is staff.
+   * @param {{confidence: string, reason: string, contact?: object, node?: object}} party
+   */
+  function industryDecision(party) {
+    const certain = party.confidence === 'certain';
+    return {
+      disposition: DISPOSITIONS.INDUSTRY_CONTACT,
+      reasons: [party.reason],
+      signals: [{ kind: 'known_industry_contact', evidence: party.reason, source: 'directory' }],
+      missing: [],
+      confidence: certain ? 0.95 : 0.5,
+      needsHuman: !certain,
+    };
+  }
+
+  function extractEmail(text) {
+    return String(text ?? '').match(/\b[\w.+-]+@[\w-]+\.[a-z]{2,}\b/i)?.[0] ?? undefined;
+  }
+  function extractPhone(text) {
+    return String(text ?? '').match(/(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/)?.[0] ?? undefined;
   }
 
   /** @param {import('./core/types.js').Person} person @param {import('./core/types.js').RawEvent} event */
