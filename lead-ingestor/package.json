@@ -1,0 +1,26 @@
+{
+  "name": "@leasing/lead-ingestor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Collects, deduplicates, triages, and enriches inbound leads for an apartment locating business. Module 2 of the leasing automation system.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./sources": "./src/sources/index.js",
+    "./triage": "./src/triage/index.js",
+    "./enrichment": "./src/enrichment/index.js",
+    "./store": "./src/store/index.js"
+  },
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "ingest": "node src/cli.js ingest",
+    "import-archive": "node src/cli.js import-archive",
+    "triage": "node src/cli.js triage",
+    "enrich": "node src/cli.js enrich",
+    "people": "node src/cli.js people",
+    "serve": "node src/server/http.js"
+  },
+  "license": "UNLICENSED"
+}
