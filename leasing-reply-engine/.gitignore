@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/*.json
+!data/.gitkeep
+src/voice/corpus/*.jsonl
+src/voice/corpus/*.txt
+!src/voice/corpus/example.jsonl
+data/*.jsonl

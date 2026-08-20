@@ -1,0 +1,26 @@
+{
+  "name": "@leasing/reply-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conversational reply engine for apartment leasing/brokering DMs. Module 1 of a larger leasing automation system.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./core": "./src/core/index.js",
+    "./voice": "./src/voice/index.js",
+    "./channels": "./src/channels/index.js",
+    "./store": "./src/store/index.js"
+  },
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "chat": "node src/cli.js chat",
+    "learn": "node src/cli.js learn",
+    "voice": "node src/cli.js voice",
+    "serve": "node src/server/http.js",
+    "typecheck": "echo 'JSDoc types: run `npx -y typescript@5 --checkJs --allowJs --noEmit --target es2022 --module nodenext src/**/*.js` if TS is available'"
+  },
+  "keywords": ["leasing", "apartment-locator", "instagram", "dm-automation"],
+  "license": "UNLICENSED"
+}
