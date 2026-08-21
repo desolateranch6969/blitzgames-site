@@ -1,0 +1,1732 @@
+<title>EAL Switchboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Switchboard — operator wrapper
+   Light palette on bare :root; dark redefines tokens only.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --ground: #F4F2EF;
+  --surface: #FFFFFF;
+  --surface-2: #FAF9F7;
+  --surface-sunk: #EFEDE8;
+  --line: #E3DFD8;
+  --line-strong: #CFC9BE;
+  --ink: #1A1815;
+  --ink-2: #4A463F;
+  --ink-3: #77726A;
+  --accent: #8F6A22;
+  --accent-soft: #F0E5CE;
+  --accent-line: #D9C08A;
+
+  --good: #2C6E52;
+  --good-soft: #DFEDE5;
+  --attn: #B4522E;
+  --attn-soft: #F7E3DA;
+  --hold: #3F5E78;
+  --hold-soft: #DFE8EF;
+  --mute: #85807A;
+  --mute-soft: #EAE7E2;
+
+  --shadow: 0 1px 2px rgba(26,24,21,.05), 0 4px 14px -6px rgba(26,24,21,.10);
+  --shadow-lift: 0 2px 4px rgba(26,24,21,.06), 0 14px 34px -12px rgba(26,24,21,.20);
+
+  --ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --rail: 232px;
+  --r-sm: 4px;
+  --r: 7px;
+  --r-lg: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #15171A;
+    --surface: #1C1F22;
+    --surface-2: #202427;
+    --surface-sunk: #131518;
+    --line: #2C3135;
+    --line-strong: #3D4348;
+    --ink: #ECE9E4;
+    --ink-2: #B4AFA7;
+    --ink-3: #8A857D;
+    --accent: #D6AC5C;
+    --accent-soft: #2E2819;
+    --accent-line: #5C4C25;
+
+    --good: #62B491;
+    --good-soft: #1B2B24;
+    --attn: #E0865E;
+    --attn-soft: #2E2019;
+    --hold: #7FA7C6;
+    --hold-soft: #1A242C;
+    --mute: #8A857D;
+    --mute-soft: #23272A;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.30), 0 4px 14px -6px rgba(0,0,0,.45);
+    --shadow-lift: 0 2px 4px rgba(0,0,0,.35), 0 14px 34px -12px rgba(0,0,0,.60);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #15171A;
+  --surface: #1C1F22;
+  --surface-2: #202427;
+  --surface-sunk: #131518;
+  --line: #2C3135;
+  --line-strong: #3D4348;
+  --ink: #ECE9E4;
+  --ink-2: #B4AFA7;
+  --ink-3: #8A857D;
+  --accent: #D6AC5C;
+  --accent-soft: #2E2819;
+  --accent-line: #5C4C25;
+
+  --good: #62B491;
+  --good-soft: #1B2B24;
+  --attn: #E0865E;
+  --attn-soft: #2E2019;
+  --hold: #7FA7C6;
+  --hold-soft: #1A242C;
+  --mute: #8A857D;
+  --mute-soft: #23272A;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.30), 0 4px 14px -6px rgba(0,0,0,.45);
+  --shadow-lift: 0 2px 4px rgba(0,0,0,.35), 0 14px 34px -12px rgba(0,0,0,.60);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { font-family: var(--ui); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* ── shell ─────────────────────────────────────────────── */
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+
+.rail {
+  background: var(--surface-sunk);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 18px;
+  padding: 16px 12px;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+
+.brand { display: flex; align-items: center; gap: 9px; padding: 4px 6px 0; }
+.brand-mark {
+  height: 26px; flex: none; border-radius: 6px; padding: 0 7px;
+  background: var(--accent); color: var(--ground);
+  display: grid; place-items: center;
+  font-family: var(--mono); font-weight: 600; font-size: 11.5px; letter-spacing: .04em;
+}
+:root[data-theme="dark"] .brand-mark, :root:not([data-theme="light"]) .brand-mark { color: #15171A; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .brand-mark { color: #FFFFFF; } }
+.brand-name { font-family: var(--ui); font-weight: 700; font-size: 15px; letter-spacing: -0.015em; }
+.brand-sub { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); letter-spacing: .01em; white-space: nowrap; }
+
+.rail-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: 0 8px; margin-bottom: 6px;
+}
+
+.vert-list { display: flex; flex-direction: column; gap: 3px; }
+.vert {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 9px; border-radius: var(--r); width: 100%;
+  text-align: left; color: var(--ink-2); transition: background .12s;
+}
+.vert:hover { background: var(--surface); }
+.vert[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.vert-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.vert-name { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.vert-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px; border-radius: var(--r); width: 100%;
+  text-align: left; color: var(--ink-2); font-size: 13.5px;
+  transition: background .12s, color .12s;
+}
+.nav-item:hover { background: var(--surface); color: var(--ink); }
+.nav-item[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
+.nav-item[aria-current="page"] .nav-icon { color: var(--accent); }
+.nav-icon { width: 15px; flex: none; color: var(--ink-3); display: grid; place-items: center; }
+.nav-badge {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  background: var(--attn); color: var(--surface); border-radius: 20px; padding: 1px 6px;
+}
+:root[data-theme="dark"] .nav-badge, :root:not([data-theme="light"]) .nav-badge { color: #15171A; }
+.nav-badge.quiet { background: var(--mute-soft); color: var(--ink-3); }
+
+.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 6px; }
+.op-card {
+  display: flex; align-items: center; gap: 9px; padding: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+}
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center;
+  font-family: var(--ui); font-weight: 600; font-size: 11px;
+}
+
+/* ── main ──────────────────────────────────────────────── */
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 22px;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.crumb { display: flex; align-items: baseline; gap: 9px; min-width: 0; flex: 1 1 auto; }
+.crumb h1 { font-size: 17px; white-space: nowrap; }
+.crumb .ctx {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+
+.search {
+  margin-left: auto; display: flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 5px 9px;
+  flex: 0 1 268px; min-width: 0;
+}
+.search input { border: none; background: none; outline: none; width: 100%; min-width: 0; font-size: 13px; }
+.search input::placeholder { color: var(--ink-3); }
+.search kbd {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 4px;
+}
+
+.view { padding: 20px 22px 44px; display: none; }
+.view.active { display: block; }
+
+/* ── shared bits ───────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--ui); font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+  background: var(--mute-soft); color: var(--ink-2);
+}
+.chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.chip.attn { background: var(--attn-soft); color: var(--attn); }
+.chip.hold { background: var(--hold-soft); color: var(--hold); }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+.chip.flat::before { display: none; }
+
+.id-tag {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  color: var(--ink-2); background: var(--surface-sunk);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 1px 6px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+button.id-tag:hover { border-color: var(--accent-line); color: var(--accent); }
+.id-tag .copy { opacity: 0; font-size: 10px; }
+button.id-tag:hover .copy { opacity: .8; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--shadow);
+}
+.card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 15px; border-bottom: 1px solid var(--line);
+}
+.card-head h3 { font-size: 13.5px; }
+.card-head .sub { font-size: 12px; color: var(--ink-3); }
+.card-body { padding: 15px; }
+
+.eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--ui); font-weight: 600; font-size: 12.5px;
+  padding: 6px 11px; border-radius: var(--r);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  transition: background .12s, border-color .12s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #FFF; }
+:root[data-theme="dark"] .btn.primary, :root:not([data-theme="light"]) .btn.primary { color: #15171A; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.ghost { border-color: transparent; background: none; color: var(--ink-2); }
+.btn.ghost:hover { background: var(--surface-sunk); color: var(--ink); }
+.btn.sm { font-size: 11.5px; padding: 4px 8px; }
+
+.grid { display: grid; gap: 14px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.muted { color: var(--ink-3); }
+.small { font-size: 12px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ── today ─────────────────────────────────────────────── */
+.needs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.need {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 14px; display: flex; flex-direction: column; gap: 3px;
+  text-align: left; transition: border-color .12s, transform .12s;
+  border-left: 3px solid var(--line-strong);
+}
+.need:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.need.is-attn { border-left-color: var(--attn); }
+.need.is-hold { border-left-color: var(--hold); }
+.need.is-good { border-left-color: var(--good); }
+.need.is-accent { border-left-color: var(--accent); }
+.need-n { font-family: var(--ui); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.need-label { font-family: var(--ui); font-size: 12.5px; font-weight: 600; }
+.need-note { font-size: 11.5px; color: var(--ink-3); }
+
+.two-col { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 1080px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
+
+.feed { display: flex; flex-direction: column; }
+.feed-row {
+  display: flex; gap: 11px; padding: 11px 15px; border-bottom: 1px solid var(--line);
+  align-items: flex-start; text-align: left; width: 100%; transition: background .12s;
+}
+.feed-row:last-child { border-bottom: none; }
+.feed-row:hover { background: var(--surface-2); }
+.feed-when { font-family: var(--mono); font-size: 11px; color: var(--ink-3); flex: none; width: 46px; padding-top: 2px; }
+.feed-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.feed-title { font-size: 13px; font-weight: 500; }
+.feed-sub { font-size: 12px; color: var(--ink-3); }
+
+/* ── leads ─────────────────────────────────────────────── */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter {
+  font-family: var(--ui); font-size: 12px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+}
+.filter:hover { border-color: var(--line-strong); }
+.filter[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.filter .n { font-family: var(--mono); font-size: 11px; opacity: .65; margin-left: 4px; }
+
+.work { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .work { grid-template-columns: minmax(0, 1fr); } }
+
+.lead-list { overflow: hidden; }
+.lead-row {
+  display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left;
+  padding: 11px 14px; border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent; transition: background .12s;
+}
+.lead-row:last-child { border-bottom: none; }
+.lead-row:hover { background: var(--surface-2); }
+.lead-row[aria-selected="true"] { background: var(--accent-soft); border-left-color: var(--accent); }
+.lead-top { display: flex; align-items: center; gap: 8px; }
+.lead-name { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.lead-handle { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.lead-when { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.lead-snippet { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.detail-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.detail-name { font-family: var(--ui); font-size: 18px; font-weight: 700; }
+.tabs { display: flex; gap: 2px; padding: 0 18px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab {
+  font-family: var(--ui); font-size: 12.5px; font-weight: 600; color: var(--ink-3);
+  padding: 9px 10px; border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.pane { padding: 16px 18px; display: none; }
+.pane.active { display: block; }
+
+.facts { display: flex; flex-direction: column; }
+.fact {
+  display: grid; grid-template-columns: 132px minmax(0, 1fr) auto; gap: 12px;
+  padding: 7px 0; border-bottom: 1px dashed var(--line); align-items: baseline;
+}
+.fact:last-child { border-bottom: none; }
+.fact-k { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.fact-v { font-size: 13px; }
+.fact-src { font-family: var(--mono); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.fact-src a { color: inherit; }
+
+.quote {
+  border-left: 2px solid var(--accent-line); padding: 2px 0 2px 10px;
+  font-size: 12.5px; color: var(--ink-2); font-style: italic;
+}
+
+.gap-list { display: flex; flex-direction: column; gap: 6px; }
+.gap {
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2);
+  padding: 6px 9px; background: var(--surface-sunk); border-radius: var(--r);
+}
+.gap .mark { color: var(--attn); font-family: var(--mono); }
+
+.thread { display: flex; flex-direction: column; gap: 9px; }
+.msg { max-width: 78%; padding: 8px 11px; border-radius: 12px; font-size: 13px; }
+.msg.in { background: var(--surface-sunk); border-bottom-left-radius: 3px; align-self: flex-start; }
+.msg.out { background: var(--accent-soft); border: 1px solid var(--accent-line); border-bottom-right-radius: 3px; align-self: flex-end; }
+.msg-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 3px; }
+
+.banner {
+  display: flex; gap: 10px; padding: 11px 13px; border-radius: var(--r);
+  font-size: 12.5px; align-items: flex-start;
+}
+.banner.attn { background: var(--attn-soft); color: var(--attn); }
+.banner.hold { background: var(--hold-soft); color: var(--hold); }
+.banner.good { background: var(--good-soft); color: var(--good); }
+.banner strong { font-family: var(--ui); }
+
+/* ── follow-ups ────────────────────────────────────────── */
+.bucket { margin-bottom: 18px; }
+.bucket-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 8px; padding-left: 2px; }
+.bucket-head h3 { font-size: 13px; }
+.bucket-rule { flex: 1; height: 1px; background: var(--line); }
+
+.fu {
+  display: grid; grid-template-columns: 96px minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 14px; align-items: center;
+  padding: 11px 14px; border-bottom: 1px solid var(--line);
+}
+.fu:last-child { border-bottom: none; }
+.fu:hover { background: var(--surface-2); }
+.fu-due { display: flex; flex-direction: column; gap: 2px; }
+.fu-due-main { font-family: var(--ui); font-weight: 600; font-size: 12.5px; }
+.fu-due-sub { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.fu-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fu-action { font-size: 12.5px; color: var(--ink-2); }
+.fu-tools { display: flex; gap: 5px; }
+.fu.overdue .fu-due-main { color: var(--attn); }
+.fu.blocked { opacity: .72; }
+@media (max-width: 900px) { .fu { grid-template-columns: minmax(0,1fr); gap: 8px; } .fu-tools { justify-content: flex-start; } }
+
+.cadence {
+  display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px;
+  color: var(--ink-3); padding: 8px 12px; background: var(--surface-sunk);
+  border-radius: var(--r); flex-wrap: wrap;
+}
+.cadence b { color: var(--ink-2); font-weight: 500; }
+
+/* ── forms ─────────────────────────────────────────────── */
+.builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .builder { grid-template-columns: minmax(0, 1fr); } }
+
+.field-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) 116px 86px auto;
+  gap: 10px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line);
+}
+.field-row:last-child { border-bottom: none; }
+.grip { color: var(--ink-3); cursor: grab; font-size: 13px; }
+.field-name { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.field-key { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.pill-select {
+  font-family: var(--mono); font-size: 11px; padding: 3px 7px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--ink-2);
+}
+.switch {
+  width: 32px; height: 18px; border-radius: 20px; background: var(--line-strong);
+  position: relative; transition: background .15s; flex: none;
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--surface); transition: transform .15s;
+}
+.switch[aria-pressed="true"] { background: var(--good); }
+.switch[aria-pressed="true"]::after { transform: translateX(14px); }
+
+.preview-phone {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 11px;
+}
+.pf-label { font-family: var(--ui); font-size: 12px; font-weight: 600; display: flex; gap: 5px; align-items: baseline; }
+.pf-label .req { color: var(--attn); font-size: 11px; }
+.pf-input {
+  border: 1px solid var(--line-strong); border-radius: var(--r); padding: 7px 9px;
+  background: var(--surface); color: var(--ink-3); font-size: 12.5px;
+}
+.pf-group { display: flex; flex-direction: column; gap: 4px; }
+.pf-opts { display: flex; gap: 5px; flex-wrap: wrap; }
+.pf-opt { font-size: 11.5px; border: 1px solid var(--line-strong); border-radius: 20px; padding: 3px 9px; color: var(--ink-2); }
+
+/* ── properties: the rolodex ───────────────────────────── */
+.prop-row {
+  display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left;
+  padding: 11px 14px; border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent; transition: background .12s;
+}
+.prop-row:last-child { border-bottom: none; }
+.prop-row:hover { background: var(--surface-2); }
+.prop-row[aria-selected="true"] { background: var(--accent-soft); border-left-color: var(--accent); }
+.prop-name { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.prop-sub { font-size: 11.5px; color: var(--ink-3); }
+
+.rolo { display: flex; flex-direction: column; gap: 12px; }
+.rcard { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.rcard.local { box-shadow: var(--shadow-lift); }
+/* The inherited card reads as a card behind a card — inset, quieter, dashed. */
+.rcard.master { background: var(--surface-2); border-style: dashed; margin: 0 10px; }
+.rcard-head {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+}
+.rcard-tag {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.rcard-title { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.rcard-note { font-size: 11.5px; color: var(--ink-3); }
+
+.person {
+  display: grid; grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: 12px; padding: 9px 14px; align-items: baseline;
+  border-bottom: 1px dashed var(--line);
+}
+.person:last-child { border-bottom: none; }
+.person-role { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.person-name { font-size: 13px; font-weight: 500; }
+.person-from { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.person-reach { font-family: var(--mono); font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.person.gone .person-name { color: var(--ink-3); text-decoration: line-through; }
+.empty-slot { padding: 12px 14px; font-size: 12.5px; color: var(--ink-3); }
+@media (max-width: 620px) {
+  .person { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .person-reach { white-space: normal; }
+}
+
+/* ── sources ───────────────────────────────────────────── */
+.src {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 12px;
+  padding: 13px 15px; border-bottom: 1px solid var(--line); align-items: center;
+}
+.src:last-child { border-bottom: none; }
+.src-dot { width: 9px; height: 9px; border-radius: 50%; }
+.src-dot.ok { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+.src-dot.warn { background: var(--attn); box-shadow: 0 0 0 3px var(--attn-soft); }
+.src-dot.idle { background: var(--mute); box-shadow: 0 0 0 3px var(--mute-soft); }
+.src-name { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.src-detail { font-size: 12px; color: var(--ink-3); }
+
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; }
+.spark i { width: 4px; background: var(--accent-line); border-radius: 1px; display: block; }
+.spark i.hi { background: var(--accent); }
+
+/* ── settings ──────────────────────────────────────────── */
+.set-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px;
+  padding: 12px 15px; border-bottom: 1px solid var(--line); align-items: center;
+}
+.set-row:last-child { border-bottom: none; }
+.set-title { font-family: var(--ui); font-weight: 600; font-size: 13px; }
+.set-note { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--ink); color: var(--ground);
+  font-family: var(--ui); font-size: 12.5px; font-weight: 600;
+  padding: 9px 15px; border-radius: 20px; box-shadow: var(--shadow-lift);
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media (max-width: 760px) {
+  .topbar { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
+  .crumb { flex: 1 1 100%; }
+  .search { margin-left: 0; flex: 1 1 auto; }
+  .search kbd { display: none; }
+  .topbar .btn.primary { flex: none; }
+
+  /* The rail becomes a compact header: brand line, then the sections as a
+     horizontally scrolling tab strip. It stays put while the view scrolls, so
+     switching sections never means scrolling back to the top. */
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail {
+    position: sticky; top: 0; z-index: 30; height: auto;
+    gap: 10px; padding: 10px 12px;
+    border-right: none; border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+  .brand { padding: 0; }
+  .nav {
+    flex-direction: row; flex-wrap: nowrap;
+    gap: 6px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 -12px; padding: 0 12px 1px;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-item {
+    width: auto; flex: none; white-space: nowrap;
+    gap: 7px; padding: 6px 11px; border-radius: 20px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .nav-item[aria-current="page"] { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+  .nav-badge { margin-left: 0; }
+  .nav-icon { display: none; }
+  .topbar { position: static; }
+  .rail-foot { display: none; }
+  .rail-label { display: none; }
+  .view { padding: 16px 14px 40px; }
+}
+</style>
+
+<div class="app">
+  <!-- ── rail ─────────────────────────────────────────── -->
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark">EAL</div>
+      <div>
+        <div class="brand-name">Switchboard</div>
+        <div class="brand-sub">elite apartment locators</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+
+    <div class="rail-foot">
+      <button class="btn ghost sm" id="themeToggle" style="justify-content:center">Switch theme</button>
+      <div class="op-card">
+        <div class="avatar">TF</div>
+        <div style="min-width:0">
+          <div style="font-family:var(--ui);font-weight:600;font-size:12.5px">Taylor F.</div>
+          <div class="small muted">Owner · all verticals</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── main ─────────────────────────────────────────── -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h1 id="viewTitle">Today</h1>
+        <span class="ctx" id="viewCtx"></span>
+      </div>
+      <div class="search">
+        <span class="muted" aria-hidden="true">⌕</span>
+        <input placeholder="Search leads, IDs, phone…" aria-label="Search">
+        <kbd>/</kbd>
+      </div>
+      <button class="btn primary" id="newLeadBtn">Add lead</button>
+    </header>
+
+    <!-- TODAY -->
+    <section class="view active" id="view-today">
+      <div class="stack">
+        <div class="needs-grid" id="needsGrid"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head">
+              <h3>Needs you</h3>
+              <span class="sub">Nothing here moves without a person</span>
+            </div>
+            <div class="feed" id="needsFeed"></div>
+          </div>
+
+          <div class="stack">
+            <div class="card">
+              <div class="card-head"><h3>Handled while you were away</h3></div>
+              <div class="feed" id="autoFeed"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>Where leads came from</h3>
+                <span class="sub" id="volWindow">last 14 days</span>
+              </div>
+              <div class="card-body" id="volBody"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADS -->
+    <section class="view" id="view-leads">
+      <div class="filters" id="leadFilters"></div>
+      <div class="work">
+        <div class="card lead-list" id="leadList"></div>
+        <div class="card" id="leadDetail"></div>
+      </div>
+    </section>
+
+    <!-- FOLLOW-UPS -->
+    <section class="view" id="view-followups">
+      <div class="stack">
+        <div class="cadence" id="cadenceBar"></div>
+        <div id="buckets"></div>
+      </div>
+    </section>
+
+    <!-- PROPERTIES -->
+    <section class="view" id="view-properties">
+      <div class="filters" id="propFilters"></div>
+      <div class="work">
+        <div class="card lead-list" id="propList"></div>
+        <div class="card" id="propDetail"></div>
+      </div>
+    </section>
+
+    <!-- INTAKE FORMS -->
+    <section class="view" id="view-forms">
+      <div class="builder">
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <h3 id="formName">Intake form</h3>
+              <span class="sub" id="formUrl"></span>
+              <button class="btn sm" style="margin-left:auto" data-toast="Link copied">Copy link</button>
+            </div>
+            <div id="fieldRows"></div>
+            <div class="card-body" style="border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap">
+              <span class="eyebrow" style="align-self:center">Add field</span>
+              <div class="row" id="fieldLibrary"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>What happens on submit</h3></div>
+            <div class="card-body stack" id="submitFlow"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Live preview</h3><span class="sub">what the client sees</span></div>
+          <div class="card-body">
+            <div class="preview-phone" id="formPreview"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPLY QUEUE -->
+    <section class="view" id="view-replies">
+      <div class="stack" id="replyQueue"></div>
+    </section>
+
+    <!-- SOURCES -->
+    <section class="view" id="view-sources">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head"><h3>Collection</h3><span class="sub">where inbound is coming from</span></div>
+          <div id="srcList"></div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h3>Voice</h3></div>
+            <div class="card-body stack" id="voiceCard"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Identity review</h3><span class="sub">merges a person must confirm</span></div>
+            <div id="mergeList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="two-col">
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h3>Automation limits</h3></div>
+            <div id="limitRows"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Compliance</h3><span class="sub">these are not optional</span></div>
+            <div id="complianceRows"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Verticals</h3><span class="sub">one console, many businesses</span></div>
+          <div id="vertRows"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+//  Data — two verticals sharing one shape
+// ─────────────────────────────────────────────────────────
+const DISPOSITION_STYLE = {
+  working:  'good',
+  qualify:  'accent',
+  question: 'hold',
+  held:     'attn',
+  closed:   'mute',
+  ignored:  'mute',
+};
+
+const DATA = {
+  leasing: {
+    name: 'Elite Apartment Locators',
+    short: 'EAL',
+    sub: 'apartment locating · Dallas',
+    dot: '#8F6A22',
+    prefix: 'EAL',
+    dispositions: [
+      { key: 'working',  label: 'Rental search' },
+      { key: 'qualify',  label: 'Needs qualifying' },
+      { key: 'question', label: 'Question only' },
+      { key: 'held',     label: 'Held for you' },
+      { key: 'closed',   label: 'Not serviceable' },
+      { key: 'ignored',  label: 'Vendors & spam' },
+    ],
+    needs: [
+      { n: 4, label: 'Follow-ups due', note: '2 overdue since yesterday', tone: 'attn', go: 'followups' },
+      { n: 3, label: 'Held for a person', note: '1 fair-housing question', tone: 'hold', go: 'leads' },
+      { n: 6, label: 'Replies to approve', note: 'drafted in your voice', tone: 'accent', go: 'replies' },
+      { n: 11, label: 'Answered on their own', note: 'no action needed', tone: 'good', go: 'today' },
+    ],
+    needsFeed: [
+      { when: '08:12', title: 'Renee K. asked whether an area is safe', sub: 'EAL-2K22 · answered neutrally, thread paused for you', chip: 'Fair housing', tone: 'attn' },
+      { when: 'Yest.', title: 'Alicia M. has a broken lease on record', sub: 'EAL-2K33 · needs a second-chance property list', chip: 'Needs you', tone: 'hold' },
+      { when: 'Yest.', title: 'Jessica R. — tour times never confirmed', sub: 'EAL-2K41 · they named Saturday 3 days ago', chip: 'Overdue', tone: 'attn' },
+      { when: 'Mon', title: 'Two records may be the same person', sub: '@alicia.mm and Alicia M. share a phone number', chip: 'Merge', tone: 'hold' },
+    ],
+    autoFeed: [
+      { when: '09:40', title: 'Answered “do you charge anything?”', sub: 'EAL-2K29 · fee explained, asked their move date' },
+      { when: '09:02', title: 'Qualified Marcus H. to 3 of 4 criteria', sub: 'EAL-2K38 · still missing budget' },
+      { when: '08:55', title: 'Ignored a lead-gen pitch', sub: 'EAL-2K27 · no reply sent' },
+      { when: '07:31', title: 'Logged Priya’s number and opened a follow-up', sub: 'EAL-2K44 · first touch scheduled for tomorrow' },
+    ],
+    volume: [
+      { label: 'Instagram DMs', n: 38, pct: 62 },
+      { label: 'Intake form', n: 14, pct: 23 },
+      { label: 'Story replies', n: 6, pct: 10 },
+      { label: 'Referral texts', n: 3, pct: 5 },
+    ],
+    leads: [
+      {
+        id: 'EAL-2K41', name: 'Jessica R.', handle: '@jessicarenter', when: '3d',
+        disposition: 'working', dispLabel: 'Rental search',
+        snippet: 'saturday afternoon works for me',
+        reasons: ['Stated they are looking for a place', 'Named a move date and a budget'],
+        stated: [
+          { k: 'Budget', v: 'up to $2,000', q: 'around 2k' },
+          { k: 'Size', v: '2 bed / 2 bath', q: '2/2' },
+          { k: 'Area', v: 'Uptown', q: 'in uptown' },
+          { k: 'Move-in', v: 'Sep 1', q: 'september 1st' },
+          { k: 'Tour window', v: 'Saturday afternoon', q: 'saturday afternoon works' },
+        ],
+        facts: [
+          { k: 'phone', v: '+1 (214) 555-0184', src: 'they typed it', method: 'message' },
+          { k: 'instagram.followers', v: '1,240', src: 'instagram-public', method: 'api' },
+          { k: 'instagram.bio', v: 'RN · Baylor · dog mom 🐕', src: 'instagram-public', method: 'api' },
+          { k: 'employer', v: 'Baylor Scott & White', src: 'linkedin', method: 'candidate' },
+          { k: 'website.title', v: 'jessicar.com — portfolio', src: 'website', method: 'page' },
+        ],
+        gaps: ['Income not stated — 3× rule unverified', 'No email on file'],
+        conflict: null,
+        thread: [
+          { dir: 'in', t: 'hey! saw your reel — looking for a 2 bed in uptown', meta: 'Mar 1 · 3:02pm' },
+          { dir: 'out', t: 'hey! when are you trying to move?', meta: 'auto · 3:04pm' },
+          { dir: 'in', t: 'september 1st, budget around $2,000', meta: '3:06pm' },
+          { dir: 'out', t: 'perfect — i’ll pull a list and send it over', meta: 'auto · 3:08pm' },
+          { dir: 'in', t: 'saturday afternoon works for me', meta: 'Mar 3 · 11:40am' },
+        ],
+        banner: null,
+      },
+      {
+        id: 'EAL-2K33', name: 'Alicia M.', handle: '@alicia.mm', when: '1d',
+        disposition: 'working', dispLabel: 'Rental search',
+        snippet: 'i had a broken lease in 2023, does that kill it?',
+        reasons: ['Stated they are looking for a place', 'Disclosed rental history that narrows the property list'],
+        stated: [
+          { k: 'Budget', v: 'up to $1,450', q: 'under 1450' },
+          { k: 'Size', v: '1 bed', q: '1 bed' },
+          { k: 'Area', v: 'Oak Lawn or Deep Ellum', q: 'oak lawn or deep ellum' },
+          { k: 'Move-in', v: 'ASAP', q: 'need out asap' },
+          { k: 'Rental history', v: 'Broken lease, 2023', q: 'broken lease in 2023' },
+        ],
+        facts: [
+          { k: 'phone', v: '+1 (469) 555-2210', src: 'intake form', method: 'form' },
+          { k: 'instagram.visibility', v: 'personal — no API data', src: 'instagram-public', method: 'api' },
+        ],
+        gaps: ['Income not stated', 'No LinkedIn found'],
+        conflict: null,
+        thread: [
+          { dir: 'in', t: 'need a 1 bed asap, under 1450, oak lawn or deep ellum', meta: 'Mar 4 · 8:15pm' },
+          { dir: 'out', t: 'got it — 1 bed, oak lawn or deep ellum, up to $1,450', meta: 'auto · 8:16pm' },
+          { dir: 'in', t: 'i had a broken lease in 2023, does that kill it?', meta: '8:19pm' },
+        ],
+        banner: { tone: 'hold', title: 'Waiting on you', body: 'A broken lease changes which properties will approve them. The assistant stopped rather than guess at approval odds.' },
+      },
+      {
+        id: 'EAL-2K22', name: 'Renee K.', handle: '@renee.k', when: '5h',
+        disposition: 'held', dispLabel: 'Held for you',
+        snippet: 'is that a safe area for my kids?',
+        reasons: ['Asked the agent to characterize an area and who lives there'],
+        stated: [
+          { k: 'Size', v: '3 bed', q: '3 bed' },
+          { k: 'Area', v: 'Lower Greenville', q: 'lower greenville' },
+        ],
+        facts: [ { k: 'instagram.followers', v: '318', src: 'instagram-public', method: 'api' } ],
+        gaps: ['Budget not stated', 'Move date not stated'],
+        conflict: null,
+        thread: [
+          { dir: 'in', t: 'looking at lower greenville, 3 bed', meta: 'Mar 6 · 9:40am' },
+          { dir: 'in', t: 'is that a safe area for my kids?', meta: '9:41am' },
+          { dir: 'out', t: 'i can’t speak to what an area or the people in it are like — that’s a fair housing thing i have to stay out of. what i can do is send you addresses so you can check public crime maps, school ratings, and drive it yourself', meta: 'auto · 9:42am' },
+          { dir: 'out', t: 'let me look at that one myself and i’ll come right back to you', meta: 'auto · 9:42am' },
+        ],
+        banner: { tone: 'attn', title: 'Fair housing — steering risk', body: 'The assistant declined neutrally and handed the thread to you. Do not characterize the area or its residents in your reply. Sending addresses and public data sources is fine.' },
+      },
+      {
+        id: 'EAL-2K38', name: 'Marcus H.', handle: '@dmarcus_h', when: '6h',
+        disposition: 'qualify', dispLabel: 'Needs qualifying',
+        snippet: 'somewhere near the medical district, moving in june',
+        reasons: ['Stated an area and a move date, nothing else yet'],
+        stated: [
+          { k: 'Area', v: 'Medical District', q: 'near the medical district' },
+          { k: 'Move-in', v: 'June', q: 'moving in june' },
+        ],
+        facts: [ { k: 'instagram.followers', v: '2,105', src: 'instagram-public', method: 'api' } ],
+        gaps: ['Budget not stated', 'Bedroom count not stated'],
+        conflict: null,
+        thread: [
+          { dir: 'in', t: 'somewhere near the medical district, moving in june', meta: 'Mar 6 · 6:20am' },
+          { dir: 'out', t: 'ok cool — medical district, june. how many bedrooms?', meta: 'auto · 6:22am' },
+        ],
+        banner: null,
+      },
+      {
+        id: 'EAL-2K29', name: 'Sam Q.', handle: '@sam.quiet', when: '1d',
+        disposition: 'question', dispLabel: 'Question only',
+        snippet: 'do you charge anything for this?',
+        reasons: ['Asked about the service without stating a search'],
+        stated: [],
+        facts: [],
+        gaps: ['Nothing stated yet — the fee answer usually starts the real conversation'],
+        conflict: null,
+        thread: [
+          { dir: 'in', t: 'do you charge anything for this?', meta: 'Mar 5 · 7:12pm' },
+          { dir: 'out', t: 'nope, costs you nothing. the property pays my side when you lease', meta: 'auto · 7:13pm' },
+          { dir: 'out', t: 'what area are you trying to be in?', meta: 'auto · 7:13pm' },
+        ],
+        banner: null,
+      },
+      {
+        id: 'EAL-2K18', name: 'Dave B.', handle: '@davebuyer', when: '4d',
+        disposition: 'closed', dispLabel: 'Not serviceable',
+        snippet: 'do you help people buy? im pre-approved',
+        reasons: ['Wants to buy, not rent'],
+        stated: [], facts: [], gaps: [], conflict: null,
+        thread: [ { dir: 'in', t: 'do you help people buy? im pre-approved for a mortgage', meta: 'Mar 2 · 1:05pm' } ],
+        banner: { tone: 'hold', title: 'Outside what you do', body: 'Nothing was sent automatically. Worth one human reply and a referral to an agent who handles purchases.' },
+      },
+      {
+        id: 'EAL-2K27', name: 'Growth Guru', handle: '@growthguru', when: '3d',
+        disposition: 'ignored', dispLabel: 'Vendor',
+        snippet: 'i help realtors get more leads — interested?',
+        reasons: ['Selling marketing or lead-gen services'],
+        stated: [], facts: [], gaps: [], conflict: null,
+        thread: [ { dir: 'in', t: 'Hey! I help realtors grow their following and get more leads. Interested?', meta: 'Mar 3 · 10:00am' } ],
+        banner: { tone: 'good', title: 'No reply sent', body: 'Vendors and recruiters are never answered automatically, and never enriched.' },
+      },
+    ],
+    followups: [
+      { id: 'EAL-2K41', who: 'Jessica R.', handle: '@jessicarenter', due: 'Overdue', dueSub: '2 days ago', action: 'Confirm Saturday tour times and send addresses', rule: 'Tour window given, no confirmation sent', bucket: 'overdue' },
+      { id: 'EAL-2K33', who: 'Alicia M.', handle: '@alicia.mm', due: 'Overdue', dueSub: 'yesterday, 6pm', action: 'Answer the broken-lease question with a second-chance list', rule: 'Held for a person, 24h elapsed', bucket: 'overdue' },
+      { id: 'EAL-2K22', who: 'Renee K.', handle: '@renee.k', due: 'Today', dueSub: '4:00pm', action: 'Reply personally — fair housing hold', rule: 'Compliance hold, same-day rule', bucket: 'today' },
+      { id: 'EAL-2K38', who: 'Marcus H.', handle: '@dmarcus_h', due: 'Today', dueSub: '6:00pm', action: 'Nudge for budget and bedroom count', rule: 'No reply in 12h after a question', bucket: 'today' },
+      { id: 'EAL-2K44', who: 'Priya N.', handle: '@priyan.dfw', due: 'Tomorrow', dueSub: '10:00am', action: 'First list of options', rule: 'Qualified → send options within 24h', bucket: 'week' },
+      { id: 'EAL-2K29', who: 'Sam Q.', handle: '@sam.quiet', due: 'Thu', dueSub: 'Mar 12', action: 'Check back once — fee answered, no criteria yet', rule: 'Question only → one check-back at 7 days', bucket: 'week' },
+      { id: 'EAL-2K09', who: 'Andre W.', handle: '@aw.dallas', due: 'Mar 28', dueSub: 'lease ends Apr 30', action: 'Re-open — their lease is up in 60 days', rule: 'Lease-end reminder set at close', bucket: 'later' },
+      { id: 'EAL-1F77', who: 'Bianca M.', handle: '@bee.m', due: 'Blocked', dueSub: 'outside 24h window', action: 'Cannot DM — waiting on them to message first', rule: 'Platform reply window expired', bucket: 'blocked' },
+    ],
+    cadence: [
+      'No reply after a question → <b>12 hours</b>',
+      'Qualified, no list sent → <b>24 hours</b>',
+      'Tour window given → <b>same day</b>',
+      'Question only, no criteria → <b>one check-back at 7 days</b>',
+      'Closed as “found a place” → <b>reminder 60 days before lease end</b>',
+    ],
+    form: {
+      name: 'Apartment search intake',
+      url: 'link in bio → /start',
+      fields: [
+        { name: 'Name', key: 'name', type: 'text', req: true },
+        { name: 'Best number', key: 'phone', type: 'phone', req: true },
+        { name: 'Move-in date', key: 'move_in', type: 'date', req: true },
+        { name: 'Areas you want', key: 'areas', type: 'multi', req: true, opts: ['Uptown', 'Deep Ellum', 'Oak Lawn', 'Bishop Arts', 'Medical District', 'Other'] },
+        { name: 'Bedrooms', key: 'beds', type: 'choice', req: true, opts: ['Studio', '1', '2', '3+'] },
+        { name: 'Max rent', key: 'budget', type: 'money', req: true },
+        { name: 'People on the lease', key: 'occupants', type: 'number', req: false },
+        { name: 'Pets', key: 'pets', type: 'text', req: false },
+        { name: 'Anything on your rental history?', key: 'screening', type: 'choice', req: false, opts: ['Nothing', 'Broken lease', 'Eviction', 'Rather discuss'] },
+      ],
+      library: ['Gross monthly income', 'Employer', 'Parking needs', 'Amenities', 'How did you hear about us', 'Preferred contact time'],
+    },
+    properties: [
+      {
+        id: 'The Maple', name: 'The Maple', area: 'Uptown', city: 'Dallas', address: '100 Main St', units: 240,
+        under: [{ name: 'North Texas', kind: 'region' }, { name: 'Alder Residential', kind: 'management company' }],
+        local: {
+          state: 'fresh', age: '4 days ago', via: 'Dana replied to a DM',
+          office: { name: 'The Maple leasing office', phone: '(214) 555-0100', email: 'leasing@themaple.com' },
+          people: [
+            { name: 'Dana Price', role: 'Property manager', phone: '(214) 555-0101', email: 'dana@alderres.com' },
+            { name: 'Kim Ruiz', role: 'Leasing', phone: '(214) 555-0102', email: 'kim@alderres.com' },
+          ],
+        },
+        master: {
+          scope: 'North Texas', sharedWith: 5, state: 'aging', age: '203 days ago', via: 'CRM export',
+          people: [
+            { name: 'Nia Patel', role: 'Regional', from: 'North Texas', phone: '(817) 555-0300', email: 'nia@alderres.com' },
+            { name: 'Darren Vance', role: 'Corporate', from: 'Alder Residential', email: 'dvance@alderres.com' },
+          ],
+        },
+      },
+      {
+        id: 'Cedar Row', name: 'Cedar Row', area: 'Oak Lawn', city: 'Dallas', address: '88 Oak Ave', units: 120,
+        under: [{ name: 'North Texas', kind: 'region' }, { name: 'Alder Residential', kind: 'management company' }],
+        local: {
+          state: 'stale', age: '211 days ago', via: 'CRM export',
+          office: { name: 'Cedar Row leasing', phone: '(214) 555-0200', email: 'leasing@cedarrow.com' },
+          people: [{ name: 'Sam Tran', role: 'Assistant manager', phone: '(214) 555-0201', email: 'sam@alderres.com' }],
+        },
+        master: {
+          scope: 'North Texas', sharedWith: 5, state: 'aging', age: '203 days ago', via: 'CRM export',
+          people: [
+            { name: 'Nia Patel', role: 'Regional', from: 'North Texas', phone: '(817) 555-0300', email: 'nia@alderres.com' },
+            { name: 'Darren Vance', role: 'Corporate', from: 'Alder Residential', email: 'dvance@alderres.com' },
+          ],
+        },
+      },
+      {
+        id: 'Trinity Heights', name: 'Trinity Heights', area: 'Design District', city: 'Dallas', address: '210 Riverfront', units: 305,
+        under: [{ name: 'North Texas', kind: 'region' }, { name: 'Alder Residential', kind: 'management company' }],
+        local: {
+          state: 'aging', age: '96 days ago', via: 'CRM export',
+          office: { name: 'Trinity Heights office', phone: '(214) 555-0400', email: 'hello@trinityheights.com' },
+          people: [
+            { name: 'Marisol Vega', role: 'Property manager', phone: '(214) 555-0401', email: 'marisol@alderres.com', status: 'unknown', note: 'email bounced 6 days ago — mailbox not found' },
+            { name: 'Jordan Cole', role: 'Leasing', phone: '(214) 555-0402', email: 'jordan@alderres.com' },
+          ],
+        },
+        master: {
+          scope: 'North Texas', sharedWith: 5, state: 'aging', age: '203 days ago', via: 'CRM export',
+          people: [
+            { name: 'Nia Patel', role: 'Regional', from: 'North Texas', phone: '(817) 555-0300', email: 'nia@alderres.com' },
+            { name: 'Darren Vance', role: 'Corporate', from: 'Alder Residential', email: 'dvance@alderres.com' },
+          ],
+        },
+      },
+      {
+        id: 'Lark House', name: 'Lark House', area: 'Fort Worth', city: 'Fort Worth', address: '55 Elm Blvd', units: 310,
+        under: [{ name: 'Cedar Group', kind: 'management company' }],
+        local: { state: 'unverified', age: null, via: null, office: null, people: [] },
+        master: {
+          scope: 'Cedar Group', sharedWith: 11, state: 'fresh', age: '22 days ago', via: 'Ray answered a call',
+          people: [{ name: 'Ray Ortiz', role: 'Regional', from: 'Cedar Group', phone: '(817) 555-0301', email: 'ray@cedargrp.com' }],
+        },
+      },
+      {
+        id: 'Bishop Flats', name: 'Bishop Flats', area: 'Bishop Arts', city: 'Dallas', address: '9 Bishop Ave', units: 44,
+        under: [],
+        local: {
+          state: 'stale', age: '408 days ago', via: 'CRM export',
+          office: null,
+          people: [{ name: 'Pat Nolan', role: 'Manager', phone: '(214) 555-0501' }],
+        },
+        master: null,
+      },
+    ],
+    replies: [
+      { id: 'EAL-2K38', who: 'Marcus H.', parts: ['ok cool — medical district, june', 'whats your budget looking like?'], acts: 'ack.criteria + ask.budget', voice: 'your voice · 94% match', status: 'clean' },
+      { id: 'EAL-2K29', who: 'Sam Q.', parts: ['nope costs you nothing. the property pays my side when you lease'], acts: 'answer.fee', voice: 'your voice · 91% match', status: 'clean' },
+      { id: 'EAL-2K44', who: 'Priya N.', parts: ['got it — 1 bed in bishop arts, up to $1,600', 'any pets?'], acts: 'ack.criteria + ask.pets', voice: 'your voice · 96% match', status: 'clean' },
+    ],
+  }
+
+};
+
+const SOURCES = [
+  { name: 'Instagram — Graph API', detail: 'Connected as @eliteapartmentlocators · webhook healthy · last message 6 min ago', state: 'ok', bars: [3,5,4,7,6,9,8,6,7,9,11,8,10,12] },
+  { name: 'Instagram — device rig', detail: 'iPhone on the mini · reading message requests · next check in 4 min', state: 'ok', bars: [1,2,1,3,2,2,4,3,2,3,2,4,3,2] },
+  { name: 'Intake form', detail: 'Live at /start · 14 submissions in 14 days', state: 'ok', bars: [0,1,2,1,0,2,1,3,1,2,0,1,2,1] },
+  { name: 'Message archive', detail: 'Imported Mar 1 · 4,812 threads · re-import when you need history refreshed', state: 'idle', bars: [] },
+  { name: 'Comment replies', detail: 'Not connected — comments on posts are not being collected', state: 'warn', bars: [] },
+];
+
+// ─────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────
+let vertical = 'leasing';
+let view = 'today';
+let leadFilter = 'all';
+let selectedLead = null;
+let detailTab = 'sheet';
+let propFilter = 'all';
+let selectedProperty = null;
+const formState = {};
+const doneFollowups = new Set();
+
+const NAV = [
+  { key: 'today',     label: 'Today',        icon: '◗' },
+  { key: 'leads',     label: 'Leads',        icon: '☰' },
+  { key: 'followups', label: 'Follow-ups',   icon: '◔' },
+  { key: 'replies',   label: 'Reply queue',  icon: '✎' },
+  { key: 'properties', label: 'Properties',  icon: '⌂' },
+  { key: 'forms',     label: 'Intake forms', icon: '▤' },
+  { key: 'sources',   label: 'Sources',      icon: '⌁' },
+  { key: 'settings',  label: 'Settings',     icon: '⚙' },
+];
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const D = () => DATA[vertical];
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 1900);
+}
+
+// ─────────────────────────────────────────────────────────
+//  Render
+// ─────────────────────────────────────────────────────────
+function renderRail() {
+  const dueCount = D().followups.filter((f) => f.bucket === 'overdue' || f.bucket === 'today').filter((f) => !doneFollowups.has(f.id)).length;
+  const heldCount = D().leads.filter((l) => l.disposition === 'held').length;
+  const replyCount = D().replies.length;
+
+  $('#nav').innerHTML = NAV.map((n) => {
+    let badge = '';
+    if (n.key === 'followups' && dueCount) badge = `<span class="nav-badge">${dueCount}</span>`;
+    if (n.key === 'leads' && heldCount) badge = `<span class="nav-badge">${heldCount}</span>`;
+    if (n.key === 'replies' && replyCount) badge = `<span class="nav-badge quiet">${replyCount}</span>`;
+    return `<button class="nav-item" data-view="${n.key}" ${n.key === view ? 'aria-current="page"' : ''}>
+      <span class="nav-icon" aria-hidden="true">${n.icon}</span>${esc(n.label)}${badge}</button>`;
+  }).join('');
+}
+
+function renderTopbar() {
+  const titles = { today: 'Today', leads: 'Leads', followups: 'Follow-ups', replies: 'Reply queue', properties: 'Properties', forms: 'Intake forms', sources: 'Sources', settings: 'Settings' };
+  $('#viewTitle').textContent = titles[view];
+  $('#viewCtx').textContent = `${D().name} · ${D().sub}`;
+}
+
+function renderToday() {
+  $('#needsGrid').innerHTML = D().needs.map((n) => `
+    <button class="need is-${n.tone}" data-view="${n.go}">
+      <span class="need-n">${n.n}</span>
+      <span class="need-label">${esc(n.label)}</span>
+      <span class="need-note">${esc(n.note)}</span>
+    </button>`).join('');
+
+  $('#needsFeed').innerHTML = D().needsFeed.map((f) => `
+    <button class="feed-row" data-view="leads">
+      <span class="feed-when">${esc(f.when)}</span>
+      <span class="feed-main">
+        <span class="feed-title">${esc(f.title)}</span>
+        <span class="feed-sub">${esc(f.sub)}</span>
+      </span>
+      <span class="chip ${f.tone}">${esc(f.chip)}</span>
+    </button>`).join('');
+
+  $('#autoFeed').innerHTML = D().autoFeed.map((f) => `
+    <div class="feed-row">
+      <span class="feed-when">${esc(f.when)}</span>
+      <span class="feed-main">
+        <span class="feed-title">${esc(f.title)}</span>
+        <span class="feed-sub">${esc(f.sub)}</span>
+      </span>
+    </div>`).join('');
+
+  $('#volBody').innerHTML = `<div class="stack" style="gap:10px">` + D().volume.map((v) => `
+    <div>
+      <div class="spread" style="margin-bottom:4px">
+        <span class="small">${esc(v.label)}</span>
+        <span class="num small muted">${v.n}</span>
+      </div>
+      <div style="height:6px;background:var(--surface-sunk);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${v.pct}%;background:var(--accent);border-radius:3px"></div>
+      </div>
+    </div>`).join('') + `</div>`;
+}
+
+function renderLeads() {
+  const counts = { all: D().leads.length };
+  for (const d of D().dispositions) counts[d.key] = D().leads.filter((l) => l.disposition === d.key).length;
+
+  $('#leadFilters').innerHTML = [{ key: 'all', label: 'Everything' }, ...D().dispositions]
+    .map((f) => `<button class="filter" data-filter="${f.key}" aria-pressed="${leadFilter === f.key}">
+      ${esc(f.label)}<span class="n">${counts[f.key] ?? 0}</span></button>`).join('');
+
+  const list = D().leads.filter((l) => leadFilter === 'all' || l.disposition === leadFilter);
+  if (!selectedLead || !list.some((l) => l.id === selectedLead)) selectedLead = list[0]?.id ?? null;
+
+  $('#leadList').innerHTML = list.length ? list.map((l) => `
+    <button class="lead-row" data-lead="${l.id}" aria-selected="${l.id === selectedLead}">
+      <span class="lead-top">
+        <span class="lead-name">${esc(l.name)}</span>
+        <span class="lead-handle">${esc(l.handle)}</span>
+        <span class="lead-when">${esc(l.when)}</span>
+      </span>
+      <span class="lead-snippet">${esc(l.snippet)}</span>
+      <span class="row" style="gap:6px">
+        <span class="id-tag">${l.id}</span>
+        <span class="chip ${DISPOSITION_STYLE[l.disposition]}">${esc(l.dispLabel)}</span>
+      </span>
+    </button>`).join('') : `<div class="card-body muted small">Nothing in this filter.</div>`;
+
+  renderLeadDetail();
+}
+
+function renderLeadDetail() {
+  const lead = D().leads.find((l) => l.id === selectedLead);
+  const el = $('#leadDetail');
+  if (!lead) { el.innerHTML = `<div class="card-body muted">Select a lead.</div>`; return; }
+
+  const tabs = [
+    { key: 'sheet', label: 'Prospect sheet' },
+    { key: 'thread', label: `Conversation (${lead.thread.length})` },
+    { key: 'history', label: 'Activity' },
+  ];
+
+  el.innerHTML = `
+    <div class="detail-head">
+      <div class="spread">
+        <div class="row" style="gap:9px">
+          <span class="detail-name">${esc(lead.name)}</span>
+          <span class="lead-handle">${esc(lead.handle)}</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn sm" data-toast="Snoozed 3 days">Snooze</button>
+          <button class="btn sm primary" data-toast="Opened in Instagram">Open thread</button>
+        </div>
+      </div>
+      <div class="row" style="gap:7px">
+        <button class="id-tag" data-copy="${lead.id}">${lead.id}<span class="copy">copy</span></button>
+        <span class="chip ${DISPOSITION_STYLE[lead.disposition]}">${esc(lead.dispLabel)}</span>
+        ${lead.reasons.map((r) => `<span class="chip flat">${esc(r)}</span>`).join('')}
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      ${tabs.map((t) => `<button class="tab" role="tab" data-dtab="${t.key}" aria-selected="${detailTab === t.key}">${esc(t.label)}</button>`).join('')}
+    </div>
+
+    <div class="pane ${detailTab === 'sheet' ? 'active' : ''}">
+      ${lead.banner ? `<div class="banner ${lead.banner.tone}" style="margin-bottom:14px">
+        <span aria-hidden="true">●</span>
+        <span><strong>${esc(lead.banner.title)}</strong><br>${esc(lead.banner.body)}</span></div>` : ''}
+
+      ${lead.stated.length ? `
+        <div class="eyebrow" style="margin-bottom:7px">What they asked for</div>
+        <div class="facts" style="margin-bottom:16px">
+          ${lead.stated.map((s) => `<div class="fact">
+            <span class="fact-k">${esc(s.k)}</span>
+            <span class="fact-v">${esc(s.v)}</span>
+            <span class="fact-src">“${esc(s.q)}”</span>
+          </div>`).join('')}
+        </div>` : ''}
+
+      ${lead.facts.length ? `
+        <div class="eyebrow" style="margin-bottom:7px">What we could establish</div>
+        <div class="facts" style="margin-bottom:16px">
+          ${lead.facts.map((f) => `<div class="fact">
+            <span class="fact-k">${esc(f.k)}</span>
+            <span class="fact-v">${esc(f.v)}</span>
+            <span class="fact-src">${esc(f.src)} · ${esc(f.method)}</span>
+          </div>`).join('')}
+        </div>` : ''}
+
+      ${lead.gaps.length ? `
+        <div class="eyebrow" style="margin-bottom:7px">Not known</div>
+        <div class="gap-list">
+          ${lead.gaps.map((g) => `<div class="gap"><span class="mark">?</span>${esc(g)}</div>`).join('')}
+        </div>` : ''}
+    </div>
+
+    <div class="pane ${detailTab === 'thread' ? 'active' : ''}">
+      <div class="thread">
+        ${lead.thread.map((m) => `<div class="msg ${m.dir}">
+          ${esc(m.t)}<div class="msg-meta">${esc(m.meta)}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="pane ${detailTab === 'history' ? 'active' : ''}">
+      <div class="feed">
+        <div class="feed-row"><span class="feed-when">now</span><span class="feed-main">
+          <span class="feed-title">Follow-up open</span><span class="feed-sub">tied to ${lead.id}</span></span></div>
+        <div class="feed-row"><span class="feed-when">${esc(lead.when)}</span><span class="feed-main">
+          <span class="feed-title">Classified as ${esc(lead.dispLabel.toLowerCase())}</span>
+          <span class="feed-sub">${esc(lead.reasons[0] ?? '')}</span></span></div>
+        <div class="feed-row"><span class="feed-when">${esc(lead.when)}</span><span class="feed-main">
+          <span class="feed-title">First contact recorded</span>
+          <span class="feed-sub">Instagram DM · person record created</span></span></div>
+      </div>
+    </div>`;
+}
+
+function renderFollowups() {
+  $('#cadenceBar').innerHTML = `<span class="eyebrow">Rules that open a follow-up</span>` +
+    D().cadence.map((c) => `<span>· ${c}</span>`).join('');
+
+  const buckets = [
+    { key: 'overdue', label: 'Overdue', note: 'oldest first' },
+    { key: 'today', label: 'Today' },
+    { key: 'week', label: 'This week' },
+    { key: 'later', label: 'Later' },
+    { key: 'blocked', label: 'Blocked', note: 'cannot send yet' },
+  ];
+
+  $('#buckets').innerHTML = buckets.map((b) => {
+    const rows = D().followups.filter((f) => f.bucket === b.key);
+    if (!rows.length) return '';
+    return `<div class="bucket">
+      <div class="bucket-head">
+        <h3>${esc(b.label)}</h3>
+        <span class="num small muted">${rows.length}</span>
+        ${b.note ? `<span class="small muted">${esc(b.note)}</span>` : ''}
+        <span class="bucket-rule"></span>
+      </div>
+      <div class="card">
+        ${rows.map((f) => {
+          const done = doneFollowups.has(f.id);
+          return `<div class="fu ${b.key === 'overdue' ? 'overdue' : ''} ${b.key === 'blocked' ? 'blocked' : ''}" ${done ? 'style="opacity:.45"' : ''}>
+            <div class="fu-due">
+              <span class="fu-due-main">${esc(f.due)}</span>
+              <span class="fu-due-sub">${esc(f.dueSub)}</span>
+            </div>
+            <div class="fu-who">
+              <div class="row" style="gap:7px">
+                <span class="lead-name">${esc(f.who)}</span>
+                <span class="id-tag">${f.id}</span>
+              </div>
+              <span class="fu-action">${done ? '<s>' + esc(f.action) + '</s>' : esc(f.action)}</span>
+            </div>
+            <div class="small muted">${esc(f.rule)}</div>
+            <div class="fu-tools">
+              ${b.key === 'blocked'
+                ? `<span class="chip attn">Waiting on them</span>`
+                : `<button class="btn sm" data-done="${f.id}">${done ? 'Undo' : 'Done'}</button>
+                   <button class="btn sm ghost" data-toast="Pushed to tomorrow">+1d</button>
+                   <button class="btn sm ghost" data-toast="Pushed a week">+1w</button>`}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderForms() {
+  const f = D().form;
+  formState[vertical] ??= f.fields.map((x) => ({ ...x }));
+  const fields = formState[vertical];
+
+  $('#formName').textContent = f.name;
+  $('#formUrl').textContent = f.url;
+
+  $('#fieldRows').innerHTML = fields.map((x, i) => `
+    <div class="field-row">
+      <span class="grip" aria-hidden="true">⠿</span>
+      <span>
+        <div class="field-name">${esc(x.name)}</div>
+        <div class="field-key">${esc(x.key)}</div>
+      </span>
+      <span class="pill-select">${esc(x.type)}</span>
+      <button class="switch" data-req="${i}" aria-pressed="${x.req}" aria-label="Required"></button>
+      <button class="btn sm ghost" data-rmfield="${i}" aria-label="Remove ${esc(x.name)}">✕</button>
+    </div>`).join('');
+
+  $('#fieldLibrary').innerHTML = f.library.map((name) =>
+    `<button class="btn sm" data-addfield="${esc(name)}">+ ${esc(name)}</button>`).join('');
+
+  $('#submitFlow').innerHTML = `
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <span class="chip accent flat">1</span><span class="small">A lead is created with a new ID <span class="id-tag">${D().prefix}-####</span> and tagged <b>${esc(D().name)}</b></span>
+    </div>
+    <div class="row" style="gap:8px"><span class="chip accent flat">2</span><span class="small">Answers become stated criteria — the same fields the DM assistant fills in</span></div>
+    <div class="row" style="gap:8px"><span class="chip accent flat">3</span><span class="small">A first follow-up opens on the vertical's cadence</span></div>
+    <div class="row" style="gap:8px"><span class="chip accent flat">4</span><span class="small">If the phone or email matches an existing person, it attaches instead of creating a duplicate</span></div>
+    <div class="banner hold" style="margin-top:4px"><span aria-hidden="true">●</span>
+      <span><strong>Consent line is required</strong><br>Every form carries the text-consent checkbox and a link to how the data is used. It cannot be removed per vertical.</span></div>`;
+
+  $('#formPreview').innerHTML = fields.map((x) => `
+    <div class="pf-group">
+      <div class="pf-label">${esc(x.name)}${x.req ? '<span class="req">required</span>' : ''}</div>
+      ${x.opts
+        ? `<div class="pf-opts">${x.opts.map((o) => `<span class="pf-opt">${esc(o)}</span>`).join('')}</div>`
+        : `<div class="pf-input">${esc(placeholderFor(x))}</div>`}
+    </div>`).join('') + `
+    <label class="row small" style="gap:7px;align-items:flex-start;color:var(--ink-3)">
+      <span class="pf-input" style="width:15px;height:15px;padding:0;flex:none"></span>
+      <span>Okay to text me about this. Message rates apply.</span>
+    </label>
+    <button class="btn primary" style="justify-content:center" data-toast="This is a preview">Send it</button>`;
+}
+
+function placeholderFor(x) {
+  return { text: 'Type here', phone: '(214) 555-0000', date: 'mm / dd / yyyy', money: '$', number: '0' }[x.type] ?? 'Type here';
+}
+
+function renderReplies() {
+  $('#replyQueue').innerHTML = D().replies.map((r) => `
+    <div class="card">
+      <div class="card-head">
+        <span class="id-tag">${r.id}</span>
+        <h3>${esc(r.who)}</h3>
+        <span class="chip good">Passed guardrails</span>
+        <span class="sub" style="margin-left:auto">${esc(r.voice)}</span>
+      </div>
+      <div class="card-body stack">
+        <div class="thread">
+          ${r.parts.map((p) => `<div class="msg out">${esc(p)}</div>`).join('')}
+        </div>
+        <div class="spread">
+          <span class="eyebrow">${esc(r.acts)}</span>
+          <div class="row" style="gap:6px">
+            <button class="btn sm ghost" data-toast="Discarded">Discard</button>
+            <button class="btn sm" data-toast="Opened for editing">Edit</button>
+            <button class="btn sm primary" data-toast="Sent — follow-up rescheduled">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('') + `
+    <div class="banner hold"><span aria-hidden="true">●</span>
+      <span><strong>Approval mode is on</strong><br>Nothing sends without you. Turn it off per vertical in Settings once the voice sounds right.</span></div>`;
+}
+
+
+// ─────────────────────────────────────────────────────────
+//  Properties — the rolodex
+// ─────────────────────────────────────────────────────────
+const FRESH_TONE = { fresh: 'good', aging: 'accent', stale: 'attn', unverified: 'hold' };
+
+/** What the card needs, and who to ask to fix it. */
+function cardTrouble(prop) {
+  const reasons = [];
+  if (!prop.local.office && !prop.local.people.length) reasons.push('nobody on the local card');
+  else if (prop.local.state === 'stale') reasons.push(`local card not confirmed in ${prop.local.age.replace(' ago', '')}`);
+  else if (prop.local.state === 'unverified') reasons.push('local card has never been confirmed');
+  if (prop.local.people.some((c) => c.status === 'unknown')) reasons.push('a local contact stopped responding');
+  if (!reasons.length) return null;
+
+  const routeBack = prop.master?.people?.[0] ?? null;
+  return { reasons, routeBack, recoverable: Boolean(routeBack) };
+}
+
+function renderProperties() {
+  const all = D().properties ?? [];
+  const trouble = (p) => cardTrouble(p);
+  const groups = {
+    all: all,
+    attention: all.filter((p) => trouble(p)),
+    stale: all.filter((p) => p.local.state === 'stale' || p.local.state === 'unverified'),
+    orphan: all.filter((p) => !p.master),
+  };
+
+  $('#propFilters').innerHTML = [
+    { key: 'all', label: 'All properties' },
+    { key: 'attention', label: 'Needs a look' },
+    { key: 'stale', label: 'Local card cold' },
+    { key: 'orphan', label: 'No master card' },
+  ].map((f) => `<button class="filter" data-propfilter="${f.key}" aria-pressed="${propFilter === f.key}">
+      ${esc(f.label)}<span class="n">${groups[f.key].length}</span></button>`).join('');
+
+  const list = groups[propFilter] ?? all;
+  if (!selectedProperty || !list.some((p) => p.id === selectedProperty)) selectedProperty = list[0]?.id ?? null;
+
+  $('#propList').innerHTML = list.length ? list.map((p) => {
+    const t = trouble(p);
+    return `<button class="prop-row" data-prop="${esc(p.id)}" aria-selected="${p.id === selectedProperty}">
+      <span class="lead-top">
+        <span class="prop-name">${esc(p.name)}</span>
+        <span class="lead-when">${esc(p.area)}</span>
+      </span>
+      <span class="prop-sub">${esc(p.units)} units · ${esc(p.under[0]?.name ?? 'independently owned')}</span>
+      <span class="row" style="gap:6px">
+        <span class="chip ${FRESH_TONE[p.local.state]}">local ${esc(p.local.state)}</span>
+        ${p.master ? '' : '<span class="chip flat">no master card</span>'}
+        ${t && !t.recoverable ? '<span class="chip attn">needs a person</span>' : ''}
+      </span>
+    </button>`;
+  }).join('') : `<div class="card-body muted small">Nothing in this filter.</div>`;
+
+  renderPropertyDetail();
+}
+
+function person(c, opts = {}) {
+  const reach = [c.phone, c.email].filter(Boolean).join('   ');
+  return `<div class="person ${c.status === 'unknown' ? 'gone' : ''}">
+    <span class="person-role">${esc(c.role ?? '')}${opts.showFrom && c.from ? `<br><span class="person-from">via ${esc(c.from)}</span>` : ''}</span>
+    <span>
+      <span class="person-name">${esc(c.name)}</span>
+      ${c.note ? `<div class="person-from" style="color:var(--attn)">${esc(c.note)}</div>` : ''}
+    </span>
+    <span class="person-reach">${esc(reach)}</span>
+  </div>`;
+}
+
+function renderPropertyDetail() {
+  const prop = (D().properties ?? []).find((p) => p.id === selectedProperty);
+  const el = $('#propDetail');
+  if (!prop) { el.innerHTML = `<div class="card-body muted">Select a property.</div>`; return; }
+
+  const t = cardTrouble(prop);
+  const local = prop.local;
+  const master = prop.master;
+
+  el.innerHTML = `
+    <div class="detail-head">
+      <div class="spread">
+        <div>
+          <div class="detail-name">${esc(prop.name)}</div>
+          <div class="small muted">${esc(prop.address)}, ${esc(prop.city)} · ${esc(prop.units)} units</div>
+        </div>
+        <button class="btn sm" data-toast="Opened in the directory">Full record</button>
+      </div>
+      <div class="row" style="gap:7px">
+        ${prop.under.length
+          ? prop.under.map((u) => `<span class="chip flat">${esc(u.name)}<span class="muted" style="margin-left:5px">${esc(u.kind)}</span></span>`).join('')
+          : '<span class="chip flat">independently owned</span>'}
+      </div>
+    </div>
+
+    <div class="pane active">
+      ${t ? `<div class="banner ${t.recoverable ? 'hold' : 'attn'}" style="margin-bottom:14px">
+        <span aria-hidden="true">●</span>
+        <span>
+          <strong>${esc(t.reasons[0])}</strong><br>
+          ${t.recoverable
+            ? `Ask ${esc(t.routeBack.name)} — ${esc(t.routeBack.role.toLowerCase())} for ${esc(master.scope)} — who is on site now.`
+            : 'Nothing above this property to ask. This one needs a person.'}
+        </span>
+        ${t.recoverable ? `<button class="btn sm" style="margin-left:auto;align-self:center" data-toast="Drafted a note to ${esc(t.routeBack.name)}">Ask them</button>` : ''}
+      </div>` : ''}
+
+      <div class="rolo">
+        <div class="rcard local">
+          <div class="rcard-head">
+            <span class="rcard-tag">local card</span>
+            <span class="rcard-title">On site</span>
+            <span class="chip ${FRESH_TONE[local.state]}">${esc(local.state)}</span>
+            <span class="rcard-note" style="margin-left:auto">
+              ${local.age ? `confirmed ${esc(local.age)} · ${esc(local.via)}` : 'never confirmed'}
+            </span>
+          </div>
+          ${local.office ? person({ role: 'Leasing office', name: local.office.name, phone: local.office.phone, email: local.office.email }) : ''}
+          ${local.people.map((c) => person(c)).join('')}
+          ${!local.office && !local.people.length ? '<div class="empty-slot">Nobody on file at this property yet.</div>' : ''}
+        </div>
+
+        ${master ? `<div class="rcard master">
+          <div class="rcard-head">
+            <span class="rcard-tag">master card</span>
+            <span class="rcard-title">${esc(master.scope)}</span>
+            <span class="chip ${FRESH_TONE[master.state]}">${esc(master.state)}</span>
+            <span class="rcard-note" style="margin-left:auto">
+              shared with ${esc(master.sharedWith)} sister propert${master.sharedWith === 1 ? 'y' : 'ies'}
+            </span>
+          </div>
+          ${master.people.map((c) => person(c, { showFrom: true })).join('')}
+          <div class="empty-slot" style="border-top:1px dashed var(--line)">
+            Maintained once for the whole portfolio. Still valid the day the local card goes cold.
+          </div>
+        </div>` : `<div class="rcard master">
+          <div class="empty-slot">No company above this property, so there is no durable card to fall back on.</div>
+        </div>`}
+      </div>
+    </div>`;
+}
+
+function renderSources() {
+  $('#srcList').innerHTML = SOURCES.map((s) => `
+    <div class="src">
+      <span class="src-dot ${s.state}"></span>
+      <span>
+        <div class="src-name">${esc(s.name)}</div>
+        <div class="src-detail">${esc(s.detail)}</div>
+      </span>
+      <span class="spark" aria-hidden="true">
+        ${s.bars.map((b, i) => `<i class="${i >= s.bars.length - 3 ? 'hi' : ''}" style="height:${Math.max(3, b * 2)}px"></i>`).join('')}
+      </span>
+    </div>`).join('');
+
+  $('#voiceCard').innerHTML = `
+    <div class="spread"><span class="small">Active profile</span><span class="chip accent">your-voice v3</span></div>
+    <div class="spread"><span class="small">Built from</span><span class="num small">4,812 of your messages</span></div>
+    <div class="spread"><span class="small">Coverage</span><span class="num small">28 of 32 phrasings learned</span></div>
+    <div class="small muted">4 situations still use baseline wording: tour options, voucher questions, accessibility, opt-out.</div>
+    <button class="btn sm" data-toast="Opened voice comparison">Hear the difference</button>`;
+
+  $('#mergeList').innerHTML = `
+    <div class="src">
+      <span class="src-dot warn"></span>
+      <span>
+        <div class="src-name">Alicia M. and @alicia.mm</div>
+        <div class="src-detail">Same phone number on both records. Merging combines their history.</div>
+      </span>
+      <span class="row" style="gap:6px">
+        <button class="btn sm ghost" data-toast="Kept separate">Separate</button>
+        <button class="btn sm" data-toast="Records merged">Merge</button>
+      </span>
+    </div>
+    <div class="src">
+      <span class="src-dot idle"></span>
+      <span>
+        <div class="src-name">Two “Chris T.” records</div>
+        <div class="src-detail">Same display name only — that is not enough to merge on.</div>
+      </span>
+      <span class="chip flat">Needs a look</span>
+    </div>`;
+}
+
+function renderSettings() {
+  const limits = [
+    { t: 'Approval before sending', n: 'Every reply waits for you. Turn off per vertical when the voice is right.', v: 'On' },
+    { t: 'Quiet hours', n: 'Nothing sends between these times. Replies queue instead.', v: '9:00pm – 8:00am' },
+    { t: 'Messages per person per hour', n: 'A hard ceiling. Prevents any loop from becoming visible.', v: '12' },
+    { t: 'Platform reply window', n: 'Instagram only permits replies within 24h of their last message.', v: 'Enforced' },
+  ];
+  $('#limitRows').innerHTML = limits.map((l) => `
+    <div class="set-row">
+      <span><div class="set-title">${esc(l.t)}</div><div class="set-note">${esc(l.n)}</div></span>
+      <span class="chip flat">${esc(l.v)}</span>
+    </div>`).join('');
+
+  const compliance = [
+    { t: 'Fair housing guardrails', n: 'Blocks any reply that describes an area, its residents, schools, or children.', v: 'Locked on' },
+    { t: 'Approval promises', n: 'Blocks anything that guarantees an outcome a property controls.', v: 'Locked on' },
+    { t: 'Assistance animals', n: 'Never treated as pets. Always routed to a person.', v: 'Locked on' },
+    { t: 'Data retention', n: 'Researched details are deleted for leads that go nowhere.', v: '180 days' },
+  ];
+  $('#complianceRows').innerHTML = compliance.map((l) => `
+    <div class="set-row">
+      <span><div class="set-title">${esc(l.t)}</div><div class="set-note">${esc(l.n)}</div></span>
+      <span class="chip ${l.v.includes('Locked') ? 'good' : 'flat'}">${esc(l.v)}</span>
+    </div>`).join('');
+
+  $('#vertRows').innerHTML = Object.entries(DATA).map(([key, v]) => `
+    <div class="set-row">
+      <span>
+        <div class="set-title"><span class="vert-dot" style="background:${v.dot};display:inline-block;margin-right:6px"></span>${esc(v.name)}</div>
+        <div class="set-note">${esc(v.sub)} · IDs start <span class="id-tag">${v.prefix}-</span></div>
+      </span>
+      <span class="chip good">Live</span>
+    </div>`).join('') + `
+    <div class="set-row">
+      <span><div class="set-title muted">Add a vertical</div>
+      <div class="set-note">New prefix, its own intake form, cadence, voice, and rules. Everything else is shared.</div></span>
+      <button class="btn sm" data-toast="Vertical setup opens here">Add</button>
+    </div>`;
+}
+
+function renderAll() {
+  renderRail();
+  renderTopbar();
+  renderToday();
+  renderLeads();
+  renderFollowups();
+  renderForms();
+  renderReplies();
+  renderProperties();
+  renderSources();
+  renderSettings();
+  document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
+}
+
+// ─────────────────────────────────────────────────────────
+//  Events
+// ─────────────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-view], [data-vert], [data-filter], [data-lead], [data-prop], [data-propfilter], [data-dtab], [data-done], [data-toast], [data-copy], [data-req], [data-rmfield], [data-addfield]');
+  if (!t) return;
+
+  if (t.dataset.view) { view = t.dataset.view; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (t.dataset.vert) { vertical = t.dataset.vert; selectedLead = null; leadFilter = 'all'; renderAll(); return; }
+  if (t.dataset.filter) { leadFilter = t.dataset.filter; renderLeads(); return; }
+  if (t.dataset.lead) { selectedLead = t.dataset.lead; detailTab = 'sheet'; renderLeads(); return; }
+  if (t.dataset.propfilter) { propFilter = t.dataset.propfilter; renderProperties(); return; }
+  if (t.dataset.prop) { selectedProperty = t.dataset.prop; renderProperties(); return; }
+  if (t.dataset.dtab) { detailTab = t.dataset.dtab; renderLeadDetail(); return; }
+
+  if (t.dataset.done) {
+    const id = t.dataset.done;
+    doneFollowups.has(id) ? doneFollowups.delete(id) : doneFollowups.add(id);
+    renderFollowups(); renderRail();
+    toast(doneFollowups.has(id) ? `${id} closed` : `${id} reopened`);
+    return;
+  }
+
+  if (t.dataset.copy) { toast(`${t.dataset.copy} copied`); return; }
+
+  if (t.dataset.req !== undefined) {
+    const f = formState[vertical][Number(t.dataset.req)];
+    f.req = !f.req; renderForms(); return;
+  }
+  if (t.dataset.rmfield !== undefined) {
+    const removed = formState[vertical].splice(Number(t.dataset.rmfield), 1)[0];
+    renderForms(); toast(`Removed “${removed.name}”`); return;
+  }
+  if (t.dataset.addfield) {
+    const name = t.dataset.addfield;
+    formState[vertical].push({ name, key: name.toLowerCase().replace(/[^a-z0-9]+/g, '_'), type: 'text', req: false });
+    renderForms(); toast(`Added “${name}”`); return;
+  }
+  if (t.dataset.toast) { toast(t.dataset.toast); }
+});
+
+$('#newLeadBtn').addEventListener('click', () => {
+  const next = `${D().prefix}-${Math.floor(1000 + Math.random() * 8999)}`;
+  toast(`${next} created — add their details`);
+});
+
+$('#themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = current ? (current === 'dark' ? 'light' : 'dark') : (prefersDark ? 'light' : 'dark');
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('sb-theme', next); } catch {}
+});
+
+try {
+  const saved = localStorage.getItem('sb-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+} catch {}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !/input|textarea/i.test(e.target.tagName)) {
+    e.preventDefault();
+    $('.search input').focus();
+  }
+});
+
+renderAll();
+</script>
