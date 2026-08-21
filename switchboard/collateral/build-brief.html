@@ -1,0 +1,334 @@
+<title>The EAL Build Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Briefing document. Inherits the console's own identity — warm
+   paper, ink and brass — because it is documentation for that
+   product and should read as the same object.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --ground: #F4F2EF;
+  --surface: #FFFFFF;
+  --surface-2: #EFECE7;
+  --ink: #1A1815;
+  --ink-2: #524C43;
+  --ink-3: #8A8175;
+  --line: #DED8CF;
+  --line-soft: #E9E4DC;
+  --accent: #8F6A22;
+  --accent-soft: #F0E6D2;
+  --good: #2F6B4F;
+  --attn: #A6432A;
+  --shadow: 0 1px 2px rgba(26,24,21,.05), 0 10px 28px rgba(26,24,21,.07);
+
+  --ui: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: 'Archivo', 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #15171A;
+    --surface: #1C1F23;
+    --surface-2: #212529;
+    --ink: #EDEAE4;
+    --ink-2: #B3ADA3;
+    --ink-3: #7E786E;
+    --line: #2E3237;
+    --line-soft: #24282C;
+    --accent: #D6AC5C;
+    --accent-soft: #33291A;
+    --good: #6FBF95;
+    --attn: #E08163;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 28px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #15171A;
+  --surface: #1C1F23;
+  --surface-2: #212529;
+  --ink: #EDEAE4;
+  --ink-2: #B3ADA3;
+  --ink-3: #7E786E;
+  --line: #2E3237;
+  --line-soft: #24282C;
+  --accent: #D6AC5C;
+  --accent-soft: #33291A;
+  --good: #6FBF95;
+  --attn: #E08163;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 28px rgba(0,0,0,.4);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--ui); font-size: 17px; line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+a:hover { border-bottom-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.doc { max-width: 720px; margin: 0 auto; padding: 0 24px 96px; }
+.wide { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+
+/* ── masthead ──────────────────────────────────────────── */
+.mast { padding: 70px 0 30px; }
+.kicker {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(31px, 5vw, 46px); line-height: 1.06;
+  letter-spacing: -0.02em; margin: 0 0 18px; text-wrap: balance;
+}
+.standfirst { font-size: 19px; color: var(--ink-2); margin: 0; }
+.byline {
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  display: flex; flex-wrap: wrap; gap: 6px 22px;
+}
+
+/* ── sections ──────────────────────────────────────────── */
+section { padding-top: 44px; }
+h2 {
+  font-family: var(--display); font-weight: 600; font-size: 24px;
+  letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance;
+}
+.sub { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin: 0 0 20px; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 17.5px; margin: 30px 0 8px; }
+p { margin: 0 0 16px; }
+p:last-child { margin-bottom: 0; }
+b, strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+
+.rule { height: 1px; background: var(--line); margin: 46px 0 0; }
+
+/* ── module cards ──────────────────────────────────────── */
+.mods { display: flex; flex-direction: column; gap: 12px; margin-top: 22px; }
+.mod {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow);
+}
+.mod-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.mod-name { font-family: var(--display); font-weight: 600; font-size: 16px; }
+.mod-path { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.pill {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+  padding: 2px 9px; border-radius: 20px;
+  background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.mod p { font-size: 15.5px; color: var(--ink-2); margin: 0; }
+
+/* ── figure ────────────────────────────────────────────── */
+figure { margin: 26px 0 0; }
+/* The screenshot is the one thing on the page that wants more than a reading
+   measure, so it steps outside the column when there is room for it to. */
+@media (min-width: 1080px) { figure { margin-left: -130px; margin-right: -130px; } }
+figure .plate {
+  border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden; box-shadow: var(--shadow); background: var(--surface);
+}
+figcaption {
+  margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+}
+
+/* ── the two-card diagram ──────────────────────────────── */
+.cards { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.card {
+  border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+  background: var(--surface);
+}
+.card.master { background: var(--surface-2); border-style: dashed; margin: 0 18px; }
+.card-tag {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px;
+}
+.card-title { font-family: var(--display); font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.card p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+/* ── tables ────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; margin-top: 20px; }
+table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 15px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 500;
+  border-bottom: 1px solid var(--line);
+}
+td:first-child { font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+
+/* ── callout ───────────────────────────────────────────── */
+.note {
+  margin-top: 22px; padding: 15px 18px; border-radius: 10px;
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  font-size: 15.5px; color: var(--ink-2);
+}
+.note .label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 6px;
+}
+
+ul { margin: 0 0 16px; padding-left: 20px; }
+li { margin-bottom: 7px; color: var(--ink-2); }
+li b { color: var(--ink); }
+li:last-child { margin-bottom: 0; }
+
+.links { display: flex; flex-direction: column; gap: 9px; margin-top: 20px; }
+.linkrow {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding: 12px 15px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface);
+}
+.linkrow .what { font-weight: 600; font-size: 15.5px; }
+.linkrow .why { font-size: 14.5px; color: var(--ink-3); }
+.linkrow a { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+
+footer {
+  margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .doc, .wide { padding-left: 16px; padding-right: 16px; }
+  .mast { padding-top: 44px; }
+  .card.master { margin: 0 9px; }
+  .linkrow a { margin-left: 0; }
+}
+</style>
+
+<div class="doc">
+  <header class="mast">
+    <div class="kicker">Elite Apartment Locators</div>
+    <h1>An automated leasing desk, built in modules</h1>
+    <p class="standfirst">Three independent engines and one console over the top of them. Everything below runs today, with 325 passing tests and no third-party dependencies at runtime.</p>
+    <div class="byline">
+      <span>Build brief</span>
+      <span>Operator · Taylor F.</span>
+      <span>Market · Dallas</span>
+      <span>Channel · Instagram DMs</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>What it is</h2>
+    <p class="sub">The shape of the system</p>
+    <p>The premise is that a locating business is three separate machines that happen to share a phone. Leads arrive and have to be sorted. Sorted leads have to be answered, in the operator's own voice, without breaking fair-housing law. Answering requires knowing who actually works at a property this month — which almost nobody knows, because the industry churns.</p>
+    <p>Each of those is built as its own container with its own tests, able to run alone. They talk through an event bus and a capability registry rather than by importing each other, so a fourth module bolts on without reopening the first three.</p>
+    <div class="mods">
+      <div class="mod">
+        <div class="mod-head"><span class="mod-name">Reply engine</span><span class="mod-path">leasing-reply-engine</span><span class="pill">130 tests</span></div>
+        <p>Classifies an inbound message, extracts what the renter told you, plans a reply as speech acts, then writes it in a voice profile learned from the operator's own messages. Guardrails run on the finished text — steering language, protected-characteristic questions, overpromises and robotic tells are all blocked before anything sends.</p>
+      </div>
+      <div class="mod">
+        <div class="mod-head"><span class="mod-name">Lead ingestor</span><span class="mod-path">lead-ingestor</span><span class="pill">103 tests</span></div>
+        <p>Pulls conversations from the Instagram export, a logged-in account, or a dedicated phone on a server, then routes each thread to a disposition with a defined next step. It routes; it does not rank. Industry contacts are separated from renters before triage ever sees them, so a property manager's DM never lands in the renter funnel.</p>
+      </div>
+      <div class="mod">
+        <div class="mod-head"><span class="mod-name">Property directory</span><span class="mod-path">property-directory</span><span class="pill">92 tests</span></div>
+        <p>The rolodex. A parent/child tree of management companies, regions and properties, with dated contact assignments so turnover never rewrites history. Imports an existing CRM export, dry-runnable, and dates records from the file rather than the clock.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>The console</h2>
+    <p class="sub">One interface, every module</p>
+    <p>A single self-contained file — no build step, no dependencies, opens in a browser. It is the same interface whichever module is doing the work, which is the point: the operator learns one screen, and new modules appear as new sections rather than new tools.</p>
+    <figure>
+      <div class="plate"><img src="__SHOT__" alt="The Properties section of the console, showing a list of five properties with freshness chips and, at right, The Maple's local card above its inherited master card." width="3360" height="2000"></div>
+      <figcaption>Properties · Mac · 1680×1000 · a real render, not a mockup</figcaption>
+    </figure>
+    <div class="links">
+      <div class="linkrow"><span class="what">The console</span><span class="why">click through every section</span><a href="https://claude.ai/code/artifact/d975503f-d0a4-4083-b17e-b92e7247193a">open →</a></div>
+      <div class="linkrow"><span class="what">On three screens</span><span class="why">Mac, Windows and phone renders</span><a href="https://claude.ai/code/artifact/15116e13-9320-464f-9854-97de1a2b1df9">open →</a></div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>The churn problem, and the two-card fix</h2>
+    <p class="sub">Why the rolodex carries two cards per property</p>
+    <p>A leasing agent is at one property for eight months and then at another. Any contact list for this industry rots at the speed of its fastest-rotting entry, which is why every locator's contact list is mostly wrong.</p>
+    <p>So each property carries two cards on different clocks.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="card-tag">Local card · volatile</div>
+        <div class="card-title">The site team</div>
+        <p>Leasing office, property manager, leasing staff. Displayed as primary, because it is who you actually call. Assumed stale after six months, because it is.</p>
+      </div>
+      <div class="card master">
+        <div class="card-tag">Master card · durable</div>
+        <div class="card-title">Inherited from above</div>
+        <p>The regional who covers this property, and corporate behind them. Maintained once for a whole portfolio rather than once per property — and still valid on the day the entire local card goes bad.</p>
+      </div>
+    </div>
+    <p style="margin-top:22px">The master card deliberately resolves to the <b>nearest ancestor that has contacts</b>, not to corporate. At a company managing a hundred thousand units nobody calls the VP about one property; the regional covers a handful and actually knows the asset. Proximity beats authority, so the card leads with the person who can answer.</p>
+    <p>That closes the loop. When the local card goes cold, the console does not just flag it — it names who to ask: <em>ask Nia Patel, regional for North Texas, who is on site now.</em> The answer to churn is not keeping the local card fresh forever, which is impossible. It is always retaining a durable route back to a fresh one.</p>
+    <div class="note">
+      <span class="label">Nothing to keep up to date by hand</span>
+      Verification is traffic-driven. A reply to a DM, a delivered email, a bounce, a name present in a CRM import — each is evidence, recorded automatically. Asking an operator to press a “still correct?” button is a feature that never gets used.
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>Commission data</h2>
+    <p class="sub">Where the agreed rate per property actually comes from</p>
+    <p>The open question was whether a central database of broker commission exists. It does not. Commission is a private contract term between a property and a broker, and it moves week to week with concessions. What exists is three partial sources, and one of them is instructive.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Source</th><th>What it is</th><th>Catch</th></tr></thead>
+        <tbody>
+          <tr><td>NAAL directory</td><td>Properties post their own commission terms, registration rules and invoice procedures. Free both ways, nationally uniform.</td><td>Opt-in, so coverage is only who bothered.</td></tr>
+          <tr><td>ALN</td><td>Nationwide per-property data from two research call centres running a rotating survey cycle.</td><td>Subscription. It is a call floor, not a feed.</td></tr>
+          <tr><td>Smart</td><td>A weekly survey portal the property fills in itself, in exchange for a comp report — plus locator invoicing, so they see what was actually paid.</td><td>Subscription, and the model is the product.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:22px">Neither vendor solved “collect commission from a hundred thousand properties.” One built a call centre. The other flipped it: the leasing office does the data entry, weekly, for free, because the comp report coming back is worth more than the numbers going in. The moat in both cases is the update loop, not the data — a snapshot is reproducible by anyone.</p>
+    <h3>The decision</h3>
+    <p>The operator already holds a Smart subscription and an existing property inventory, which removes the hard part. Seed from those rather than crawling the open web for a starting set, then poll politely and continuously for the <b>delta</b> — the commission and bonus changes — rather than re-pulling a corpus. Treat it as one source among several, stamped with provenance, never overriding the operator's own records.</p>
+    <div class="note">
+      <span class="label">Two things to keep in view</span>
+      Automated extraction from a subscription platform is a contract question that lands on the account holder, and a materially larger one if this tool is ever sold — vendors of this kind normally sell an export, and asking is cheaper than the exposure. Separately: posted is not paid. When a lease pays out, the amount received either confirms the recorded rate or contradicts it, and the gap between the two is the fact no directory will ever hold.
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>Where it stands</h2>
+    <p class="sub">Built, and deliberately not built</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Piece</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>Reply engine</td><td>Built. Interim voice profile in place; swaps for one learned from real message history in a single command.</td></tr>
+          <tr><td>Lead ingestor</td><td>Built. Instagram export, logged-in account and device-bridge paths all covered.</td></tr>
+          <tr><td>Property directory</td><td>Built, including CRM import and the two-card model.</td></tr>
+          <tr><td>Console</td><td>Built, running on fixtures. Wiring it to the modules is the next piece of work.</td></tr>
+          <tr><td>Commission record</td><td>Not built. Route documented, decision made, no code committed to it.</td></tr>
+          <tr><td>Crawler</td><td>Not ours. The directory exposes the seam it plugs into.</td></tr>
+          <tr><td>Property ↔ lead links</td><td>Not built. What was sent, toured and applied to, and guest-card tracking on that join.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:22px">Three principles held throughout, and they are worth stating because they cost real features: <b>it routes, it does not rank</b>; <b>nothing sends without passing guardrails</b>; and <b>nothing depends on the operator remembering to maintain it</b>.</p>
+  </section>
+
+  <footer>
+    desolateranch6969/blitzgames-site · branch claude/apartment-leasing-automation-97a6ro · 325 tests passing · zero runtime dependencies
+  </footer>
+</div>

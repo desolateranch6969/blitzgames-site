@@ -47,3 +47,15 @@ node tools/shoot.mjs
 One thing the script exists to get right: it wraps `switchboard.html` in a full
 document with a viewport meta before shooting. Without that, Chromium lays mobile
 out at 980px and scales down, which is not what any phone shows.
+
+## Collateral
+
+`collateral/` holds two shareable pages built from the same screenshots — a
+device preview showing the console at each viewport, and a build brief covering
+what exists across all three modules. They are stored as templates with
+`__TOKEN__` placeholders so the repository does not carry two megabytes of
+duplicated base64. Build the real pages with:
+
+```
+node switchboard/collateral/build.mjs      # → collateral/dist/*.html
+```
